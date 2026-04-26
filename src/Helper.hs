@@ -9,14 +9,12 @@ newtype UpdatedTmArrTm = UpdatedTmArrTm
 traverseDownTm :: (TermNode -> UpdatedTmArrTm) -> TermNode -> TermNode
 traverseDownTm f t = TermNode fi $
   case tm of
-    TmConst _     -> tm
+    TmInt _       -> tm
     TmVar _ _ _   -> tm
     TmVarRaw _    -> tm
     TmAbs x t1    -> TmAbs x (traverseTm' t1)
     TmApp t1 t2   -> TmApp (traverseTm' t1) (traverseTm' t2)
     TmAnno t1 ty1 -> TmAnno (traverseTm' t1) ty1
-    TmRec xs ts   -> TmRec xs (map traverseTm' ts)
-    TmProj t1 x   -> TmProj (traverseTm' t1) x
     _             -> tm
   where
     tm = getTm t'
@@ -27,11 +25,10 @@ traverseDownTm f t = TermNode fi $
 isVal :: TermNode -> Bool
 isVal t =
   case getTm t of
-    TmConst _                       -> True
-    TmAbs _ _                       -> True
-    TmRec _ ts | and $ map isVal ts -> True
-    TmAnno t1 _ | isVal t1          -> True
-    _                               -> False
+    TmInt _                -> True
+    TmAbs _ _              -> True
+    TmAnno t1 _ | isVal t1 -> True
+    _                      -> False
 
 evalSubst :: TermNode -> TermNode -> TermNode
 evalSubst s t = shift' 0 (-1) (subst' 0 (shift' 0 1 s) t)
@@ -78,7 +75,6 @@ genIndex ctx t =
       TmVarRaw x | elem x ctx -> (TermNode (getFI t) (TmVar (length $ takeWhile (/= x) ctx) (length ctx) x), genIndex ctx, genIndex ctx, id)
       TmVarRaw x -> (TermNode (getFI t) (TmError ("Free variables are not allowed: " ++ x)), genIndex ctx, genIndex ctx, id)
       TmAbs x _ -> (t, genIndex (x : ctx), genIndex ctx, id)
-      TmRec xs _ | nub xs /= xs -> (TermNode (getFI t) (TmError ("All of the labels in a record must be unique within that record, and the repeated ones are: " ++ show (xs \\ nub xs))), genIndex ctx, genIndex ctx, id)
       _ -> (t, genIndex ctx, genIndex ctx, id)
 
 id' :: TermNode -> UpdatedTmArrTm
@@ -106,8 +102,6 @@ findTypeErrors t =
   case t of
     TyError e     -> [e]
     TyArrow t1 t2 -> findTypeErrors t1 ++ findTypeErrors t2
-    TyInter t1 t2 -> findTypeErrors t1 ++ findTypeErrors t2
-    TyRec _ t1    -> findTypeErrors t1
     _             -> []
 
 findTermErrors' :: TermNode -> String
@@ -120,7 +114,5 @@ findTermErrors t =
         TmError e     -> [e]
         TmAbs _ t1    -> findTermErrors t1
         TmApp t1 t2   -> findTermErrors t1 ++ findTermErrors t2
-        TmRec _ ts    -> concat $ map findTermErrors ts
         TmAnno t1 ty1 -> findTermErrors t1 ++ findTypeErrors ty1
-        TmProj t1 _   -> findTermErrors t1
         _             -> []

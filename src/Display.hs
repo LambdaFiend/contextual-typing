@@ -12,7 +12,7 @@ showTerm' t =
 showTerm :: NameContext -> TermNode -> String
 showTerm ctx t =
   case getTm t of
-    TmConst c -> showConst c
+    TmInt n -> show n
     TmVarRaw x -> "#" ++ "Raw variable found in display: " ++ x ++ showFileInfo (getFI t) ++ "#"
     TmVar k l x ->
       let ctxLength = length ctx
@@ -24,18 +24,7 @@ showTerm ctx t =
        in "(" ++ "λ" ++ x' ++ "." ++ showTerm (x' : ctx) t1 ++ ")"
     TmApp t1 t2 -> "(" ++ showTerm ctx t1 ++ " " ++ showTerm ctx t2 ++ ")"
     TmAnno t1 ty1 -> "(" ++ showTerm ctx t1 ++ " : " ++ showType ty1 ++ ")"
-    TmRec xs ts -> "{" ++ concat (map (\(x, tm) -> x ++ " = " ++ showTerm ctx tm) (zip xs ts)) ++ "}"
-    TmProj t1 x -> showTerm ctx t1 ++ "." ++ x
     TmError e -> "#" ++ e ++ "#"
-
-showConst :: ConstInfo -> String
-showConst c =
-  case c of
-    ConstInt n       -> show n
-    ConstFloat u     -> show u
-    ConstPlus        -> "+"
-    ConstPlusInt n   -> "+ⁱ<" ++ show n ++ ">"
-    ConstPlusFloat u -> "+ᶠ<" ++ show u ++ ">"
 
 showType' :: Type -> String
 showType' ty = removeOuterParens (showType ty)
@@ -44,11 +33,7 @@ showType :: Type -> String
 showType ty =
   case ty of
     TyInt           -> "Int"
-    TyFloat         -> "Float"
-    TyTop           -> "Top"
     TyArrow ty1 ty2 -> "(" ++ showType ty1 ++ " → " ++ showType ty2 ++ ")"
-    TyInter ty1 ty2 -> "(" ++ showType ty1 ++ " & " ++ showType ty2 ++ ")"
-    TyRec x ty1     -> "{" ++ x ++ " : " ++ showType ty1 ++ "}"
     TyError e       -> "#" ++ e ++ "#"
 
 showSurroundingInfo :: NameContext -> SurroundingInfo -> String
@@ -56,7 +41,6 @@ showSurroundingInfo ctx info =
   case info of
     SType ty -> showType' ty
     STerm t  -> showTerm ctx t
-    SLabel x -> x
 
 getNameFromContext :: NameContext -> Index -> Name -> Name
 getNameFromContext ctx ind x
