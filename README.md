@@ -39,8 +39,8 @@ Regarding the Typing for each syntax construct, I might add it later on. This sy
 | \x.t1 | A term abstraction, of type<br>T -> T1, where T is the<br>type given to x and T1 of t1 |
 | t1 t2 | A term application, of type<br>T1, where T2 -> T1 is the<br>type of t1 and T2 of t2 |
 | + | The plus operator, of type<br>(Int -> Int -> Int) & (Float -> Float -> Float) |
-| +ⁱ<i> | A plus operator having received an<br>integer i as its first argument, of<br>type (Int -> Int) and the smaller i<br>is not the same as the big one |
-| +ᶠ<u> | A plus operator having received an<br>integer i as its first argument, of<br>type (Float -> Float) |
+| +ⁱ\<i\> | A plus operator having received an<br>integer i as its first argument, of<br>type (Int -> Int) and the smaller i<br>is not the same as the big one<br>as the big one is the previously<br>received number |
+| +ᶠ\<u\> | A plus operator having received a<br>float u as its first argument, of<br>type (Float -> Float) |
 | t.a | A projection, where a is label, and<br>t a term, and its type is Ta<br>where the type of t is {Tb, ..., Ta, ...} |
 | {a1=t1, ..., an=tn} | A record, where an is a label and<br>tn is a term, and its type<br>is {a1 : T1, ..., an : Tn} |
 | t : T | An annotation, where its type<br>is T should t's type match it |
