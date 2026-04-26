@@ -12,12 +12,7 @@ type NameContext = [Name]
 
 type TypeContext = [(Name, Type)]
 
-type SurroundingContext = [SurroundingInfo]
-
-data SurroundingInfo
-  = SType Type
-  | STerm TermNode
-  deriving (Eq, Show)
+type ApplicationStack = [Type]
 
 data TermNode = TermNode
   { getFI :: FileInfo,
@@ -31,7 +26,6 @@ data Term
   | TmVar Index Index Name
   | TmAbs Name TermNode
   | TmApp TermNode TermNode
-  | TmAnno TermNode Type
   | TmError String
   deriving (Eq, Show)
 
@@ -47,11 +41,3 @@ noPos = AlexPn (-1) (-1) (-1)
 fromMaybe :: Maybe a -> a
 fromMaybe (Just x) = x
 fromMaybe Nothing  = error "fromMaybe, in Syntax.hs"
-
-isGenericConsumer :: TermNode -> Bool
-isGenericConsumer t =
-  case getTm t of
-    TmInt _     -> True
-    TmVar _ _ _ -> True
-    TmAnno _ _  -> True
-    _           -> False

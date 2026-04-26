@@ -13,12 +13,9 @@ import Syntax
 %token
 
 "\\"    { Token pos LAMBDA }
-tyint   { Token pos TYINT }
 "."     { Token pos DOT }
-":"     { Token pos COLON }
 "("     { Token pos LPAREN }
 ")"     { Token pos RPAREN }
-"->"    { Token pos ARROW }
 tmint   { Token pos (TMINT s) }
 id      { Token pos (ID s) }
 
@@ -31,12 +28,8 @@ Term
 Abs : "\\" Name "." Term { TermNode (tokenPos $1) (TmAbs (snd $2) $4) }
 
 App
-  : App Anno { TermNode (getFI $1) (TmApp $1 $2) }
-  | Anno     { $1 }
-
-Anno
-  : Atom ":" Type { TermNode (getFI $1) (TmAnno $1 $3) }
-  | Atom          { $1 }
+  : App Atom { TermNode (getFI $1) (TmApp $1 $2) }
+  | Atom     { $1 }
 
 Atom
   : Value         { $1 }
@@ -44,19 +37,9 @@ Atom
 
 Value
   : Name       { TermNode (fst $1) (TmVarRaw (snd $1)) }
-  | tmint      { TermNode (tokenPos $1) (TmInt ((\(TMINT s) -> s) (tokenDat $1))) }
+  | tmint   { TermNode (tokenPos $1) (TmInt ((\(TMINT s) -> s) (tokenDat $1))) }
 
 Name : id { (tokenPos $1, (\(ID s) -> s) (tokenDat $1)) }
-
-Type : TypeArrow { $1 }
-
-TypeArrow
-  : TypeAtom "->" TypeArrow { TyArrow $1 $3 }
-  | TypeAtom                { $1 }
-
-TypeAtom
-  : tyint                 { TyInt }
-  | "(" Type ")"          { $2 }
 
 {
 parseError :: [Token] -> Either String a

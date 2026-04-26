@@ -10,7 +10,6 @@ eval1 t =
    in TermNode fi $
         case tm of
           TmApp (TermNode _ (TmAbs _ t11)) v2 | isVal v2 -> getTm $ evalSubst v2 t11
-          TmApp (TermNode _ (TmAnno (TermNode _ (TmAbs _ t11)) (TyArrow _ ty2))) v2 | isVal v2 -> TmAnno (TermNode fi $ getTm $ evalSubst v2 t11) ty2
           TmApp v1 t2
             | isVal v1 ->
                 let result = eval1 t2
@@ -19,10 +18,6 @@ eval1 t =
             | not $ isVal t1 ->
                 let result = eval1 t1
                  in checkError result $ TmApp result t2
-          TmAnno t1 ty
-            | not $ isVal t1 ->
-                let result = eval1 t1
-                 in checkError result $ TmAnno result ty
           _ -> TmError ("No rule applies" ++ showFileInfo fi)
   where
     checkError :: TermNode -> Term -> Term

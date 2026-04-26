@@ -9,13 +9,12 @@ newtype UpdatedTmArrTm = UpdatedTmArrTm
 traverseDownTm :: (TermNode -> UpdatedTmArrTm) -> TermNode -> TermNode
 traverseDownTm f t = TermNode fi $
   case tm of
-    TmInt _       -> tm
-    TmVar _ _ _   -> tm
-    TmVarRaw _    -> tm
-    TmAbs x t1    -> TmAbs x (traverseTm' t1)
-    TmApp t1 t2   -> TmApp (traverseTm' t1) (traverseTm' t2)
-    TmAnno t1 ty1 -> TmAnno (traverseTm' t1) ty1
-    _             -> tm
+    TmInt _     -> tm
+    TmVar _ _ _ -> tm
+    TmVarRaw _  -> tm
+    TmAbs x t1  -> TmAbs x (traverseTm' t1)
+    TmApp t1 t2 -> TmApp (traverseTm' t1) (traverseTm' t2)
+    _           -> tm
   where
     tm = getTm t'
     fi = getFI t'
@@ -25,23 +24,12 @@ traverseDownTm f t = TermNode fi $
 isVal :: TermNode -> Bool
 isVal t =
   case getTm t of
-    TmInt _                -> True
-    TmAbs _ _              -> True
-    TmAnno t1 _ | isVal t1 -> True
-    _                      -> False
+    TmInt _   -> True
+    TmAbs _ _ -> True
+    _         -> False
 
 evalSubst :: TermNode -> TermNode -> TermNode
 evalSubst s t = shift' 0 (-1) (subst' 0 (shift' 0 1 s) t)
-
-varCtxLengthSuc' :: TermNode -> TermNode
-varCtxLengthSuc' t = traverseDownTm varCtxLengthSuc t
-
-varCtxLengthSuc :: TermNode -> UpdatedTmArrTm
-varCtxLengthSuc t =
-  UpdatedTmArrTm $
-    case getTm t of
-      TmVar k l x -> (TermNode (getFI t) (TmVar k (l + 1) x), id', id', id)
-      _           -> (t, varCtxLengthSuc, varCtxLengthSuc, id)
 
 shift' :: Index -> Index -> TermNode -> TermNode
 shift' c d t = traverseDownTm (shift c d) t
@@ -111,8 +99,7 @@ findTermErrors :: TermNode -> [String]
 findTermErrors t =
   let tm = getTm t
    in case tm of
-        TmError e     -> [e]
-        TmAbs _ t1    -> findTermErrors t1
-        TmApp t1 t2   -> findTermErrors t1 ++ findTermErrors t2
-        TmAnno t1 ty1 -> findTermErrors t1 ++ findTypeErrors ty1
-        _             -> []
+        TmError e   -> [e]
+        TmAbs _ t1  -> findTermErrors t1
+        TmApp t1 t2 -> findTermErrors t1 ++ findTermErrors t2
+        _           -> []

@@ -23,7 +23,6 @@ showTerm ctx t =
       let x' = fixName ctx x
        in "(" ++ "λ" ++ x' ++ "." ++ showTerm (x' : ctx) t1 ++ ")"
     TmApp t1 t2 -> "(" ++ showTerm ctx t1 ++ " " ++ showTerm ctx t2 ++ ")"
-    TmAnno t1 ty1 -> "(" ++ showTerm ctx t1 ++ " : " ++ showType ty1 ++ ")"
     TmError e -> "#" ++ e ++ "#"
 
 showType' :: Type -> String
@@ -35,12 +34,6 @@ showType ty =
     TyInt           -> "Int"
     TyArrow ty1 ty2 -> "(" ++ showType ty1 ++ " → " ++ showType ty2 ++ ")"
     TyError e       -> "#" ++ e ++ "#"
-
-showSurroundingInfo :: NameContext -> SurroundingInfo -> String
-showSurroundingInfo ctx info =
-  case info of
-    SType ty -> showType' ty
-    STerm t  -> showTerm ctx t
 
 getNameFromContext :: NameContext -> Index -> Name -> Name
 getNameFromContext ctx ind x
