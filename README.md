@@ -20,7 +20,7 @@ This should suffice:
 
 ## Using STLCCT
 
-CICCT is a REPL. So, in order to use it, you may either write into a file inside the ```programs``` directory, or directly use the REPL's mid-execution features.
+STLCCT is a REPL. So, in order to use it, you may either write into a file inside the ```programs``` directory, or directly use the REPL's mid-execution features.
 
 ## Understanding STLCCT's Language
 
