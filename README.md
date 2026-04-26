@@ -22,7 +22,7 @@ This should suffice:
 
 CICCT is a REPL. So, in order to use it, you may either write into a file inside the ```programs``` directory, or directly use the REPL's mid-execution features.
 
-## Understanding LTIBDT's Language
+## Understanding CICCT's Language
 
 Check the referenced article, the example inputs from ```programs/default_tests.txt``` and try using the REPL for a little while.
 
