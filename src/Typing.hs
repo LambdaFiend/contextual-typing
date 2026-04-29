@@ -102,11 +102,11 @@ supertype tctx ty sctx =
                       case _CASAnd ty3 ty4 of
                         TyError e3 -> TyError ("| supertype CASAndL, CASAndR and CASAnd: failed to supertype both sides of the intersection, as well as the intersection" ++ "\n" ++ "{-------------------backtrack_start------------------" ++ "\n" ++ e1 ++ "\n" ++ "-----------------------------------------------------" ++ "\n" ++ e2 ++ "\n" ++ "-----------------------------------------------------" ++ "\n" ++ e3 ++ "\n" ++ "--------------------backtrack_end-------------------}")
                         ty5 -> ty5
-                    _ -> TyError ("| supertype No rules apply: the environment Γ ≡ " ++ showStringList (map (\(a, b) -> a ++ " : " ++ showType' b) tctx) ++ ", the term e ≡ " ++ showType' ty ++ " and the surrounding context Σ ≡ " ++ showStringList (map (showSurroundingInfo (map fst tctx)) sctx))
+                    _ -> TyError ("| supertype No rules apply: the environment Γ ≡ " ++ showStringList (map (\(a, b) -> a ++ " : " ++ showType' b) tctx) ++ ", the type A ≡ " ++ showType' ty ++ " and the surrounding context Σ ≡ " ++ showStringList (map (showSurroundingInfo (map fst tctx)) sctx))
                 ty3 -> ty3
             ty3 -> ty3
     (_, (SType (TyInter ty1 ty2) : [])) -> _CASAnd ty1 ty2
-    (_, _) -> TyError ("| supertype No rules apply: the environment Γ ≡ " ++ showStringList (map (\(a, b) -> a ++ " : " ++ showType' b) tctx) ++ ", the term e ≡ " ++ showType' ty ++ " and the surrounding context Σ ≡ " ++ showStringList (map (showSurroundingInfo (map fst tctx)) sctx))
+    (_, _) -> TyError ("| supertype No rules apply: the environment Γ ≡ " ++ showStringList (map (\(a, b) -> a ++ " : " ++ showType' b) tctx) ++ ", the type A ≡ " ++ showType' ty ++ " and the surrounding context Σ ≡ " ++ showStringList (map (showSurroundingInfo (map fst tctx)) sctx))
   where
     _CASAnd ty1 ty2 =
       case supertype tctx ty (SType ty1 : []) of
