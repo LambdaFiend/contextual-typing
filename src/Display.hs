@@ -29,6 +29,9 @@ showTerm ctx t =
        in "(" ++ "Λ" ++ x' ++ "." ++ showTerm (x' : ctx) t1 ++ ")"
     TmTyApp t1 ty1 -> "(" ++ showTerm ctx t1 ++ " @" ++ showType ctx ty1 ++ ")"
     TmAnno t1 ty1 -> "(" ++ showTerm ctx t1 ++ " : " ++ showType ctx ty1 ++ ")"
+    TmAbsAnno x ty1 t1 ->
+      let x' = fixName ctx x
+       in "(" ++ "λ" ++ x' ++ ": " ++ showType ctx ty1 ++ "." ++ showTerm (x' : ctx) t1 ++ ")"
     TmError e -> "#" ++ e ++ "#"
 
 showType' :: Type -> String

@@ -32,6 +32,23 @@ infer tctx sctx t =
           case infer (TmVarBind x (tyShift 0 1 ty1) : tctx) (shiftSurroundingContext sctx' 1) t1 of
             TyError e -> TyError ("| infer AT-Lam2: failed to infer the term e ≡ " ++ showTerm (x : nctx) t1 ++ " assuming " ++ x ++ " assigned to the type A ≡ " ++ showType nctx ty1 ++ " at the top of the typing environment Γ ≡ " ++ showTypingEnvironment nctx tctx ++ " and the smaller surrounding context Σ ≡ " ++ showSurroundingContext nctx sctx' ++ "\n" ++ e)
             ty2 -> TyArrow ty1 (tyShift 0 (-1) ty2)
+    ([SType (TyArrow ty1 ty2)], TmAbsAnno x ty21 t1) ->
+      if ty1 == ty21
+        then case infer (TmVarBind x (tyShift 0 1 ty1) : tctx) [SType (tyShift 0 1 ty2)] t1 of
+          TyError e -> TyError ("| infer AT-AnLam1: failed to infer e ≡ " ++ showTerm (x : nctx) t1 ++ " assuming " ++ x ++ " assigned to the type A ≡ " ++ showType nctx ty1 ++ " at the top of the typing environment Γ ≡ " ++ showTypingEnvironment nctx tctx ++ " and the type B ≡ " ++ showType nctx ty2 ++ " as the surrounding context Σ" ++ "\n" ++ e)
+          ty3 -> TyArrow ty1 (tyShift 0 (-1) ty3)
+        else TyError ("| infer AT-AnLam1: there was a type mismatch between type A ≡ " ++ showType nctx ty1 ++ " and from the lambda annotation of the term e ≡ " ++ showTerm nctx t ++ " the type C ≡ " ++ showType nctx ty21)
+    ((STerm t2 : sctx'), TmAbsAnno x ty21 t1) ->
+      case infer tctx [SType ty21] t2 of
+        TyError e -> TyError ("| infer AT-AnLam2: failed to infer the contextual argument e2 ≡ " ++ showTerm nctx t2 ++ " assuming the annotated type A ≡ " ++ showType nctx ty21 ++ " as the surrounding context Σ" ++ "\n" ++ e)
+        ty1 ->
+          case infer (TmVarBind x (tyShift 0 1 ty1) : tctx) (shiftSurroundingContext sctx' 1) t1 of
+            TyError e -> TyError ("| infer AT-AnLam2: failed to infer the term e ≡ " ++ showTerm (x : nctx) t1 ++ " assuming " ++ x ++ " assigned to the type A ≡ " ++ showType nctx ty1 ++ " at the top of the typing environment Γ ≡ " ++ showTypingEnvironment nctx tctx ++ " and the smaller surrounding context Σ ≡ " ++ showSurroundingContext nctx sctx' ++ "\n" ++ e)
+            ty2 -> TyArrow ty1 (tyShift 0 (-1) ty2)
+    ([], TmAbsAnno x ty21 t1) ->
+      case infer (TmVarBind x ty21 : tctx) [] t1 of
+        TyError e -> TyError ("| infer AT-AnLam3: failed to infer the contextual argument e ≡ " ++ showTerm nctx t1 ++ "\n" ++ e)
+        ty1 -> TyArrow ty21 ty1
     (_, TmApp t1 t2) ->
       case infer tctx (STerm t2 : sctx) t1 of
         TyError e -> TyError ("| infer AT-App: failed to infer the term e1 ≡ " ++ showTerm nctx t1 ++ " assuming the term e2 ≡ " ++ showTerm nctx t2 ++ " at the top of the surrounding context Σ ≡ " ++ showSurroundingContext nctx sctx ++ "\n" ++ e)
@@ -69,52 +86,6 @@ infer tctx sctx t =
     (_, _) -> TyError ("| infer No rules apply: the typing environment Γ ≡ " ++ showTypingEnvironment nctx tctx ++ ", the surrounding context Σ ≡ " ++ showSurroundingContext nctx sctx ++ " and the term e ≡ " ++ showTerm nctx t)
   where
     nctx = map getNameTy tctx
-
-collectFreeTyVars :: Type -> [Index]
-collectFreeTyVars ty = collectFreeTyVars' [] ty
-
-collectFreeTyVars' :: NameContext -> Type -> [Index]
-collectFreeTyVars' ctx ty =
-  case ty of
-    TyInt           -> []
-    TyVarRaw _      -> []
-    TyVar k _ _     -> if k < length ctx then [] else [k - length ctx]
-    TyForAll x ty1  -> collectFreeTyVars' (x : ctx) ty1
-    TyArrow ty1 ty2 -> collectFreeTyVars' ctx ty1 ++ collectFreeTyVars' ctx ty2
-    TyError _       -> []
-
-isClosedType :: SubtypingEnvironment -> Type -> Bool
-isClosedType ctx ty = all (\j -> case j of Just s -> isSolved s; Nothing -> False) svars
-  where
-    fvars = collectFreeTyVars ty
-    svars = map (\k -> ctx !? k) fvars
-
-isSolved :: SubTyEnvBinding -> Bool
-isSolved (SolvedTyVar _ _) = True
-isSolved _                 = False
-
-isUnsolved :: SubTyEnvBinding -> Bool
-isUnsolved (UnsolvedTyVar _) = True
-isUnsolved _                 = False
-
-findSolution :: SubtypingEnvironment -> Name -> Index -> Maybe Type
-findSolution ctx x k =
-  case ctx !? k of
-    Just (SolvedTyVar x' ty') | x == x' -> Just ty'
-    _                                   -> Nothing
-
-substCtxToTy :: SubtypingEnvironment -> Type -> Type
-substCtxToTy ctx ty =
-  case ty of
-    TyInt -> ty
-    TyVarRaw _ -> ty
-    TyVar k _ x ->
-      case findSolution ctx x k of
-        Just ty' -> (tyShift 0 k ty')
-        Nothing  -> ty
-    TyForAll x ty1 -> TyForAll x (substCtxToTy (UniversalTyVar x : ctx) ty1)
-    TyArrow ty1 ty2 -> TyArrow (substCtxToTy ctx ty1) (substCtxToTy ctx ty2)
-    TyError _ -> ty
 
 subtypeInfer :: TypingEnvironment -> SubtypingEnvironment -> Type -> SurroundingContext -> (Maybe SubtypingEnvironment, Type)
 subtypeInfer tctx stctx ty sctx =

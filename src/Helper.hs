@@ -9,15 +9,16 @@ newtype UpdatedTmArrTm = UpdatedTmArrTm
 traverseDownTm :: (TermNode -> UpdatedTmArrTm) -> TermNode -> TermNode
 traverseDownTm f t = TermNode fi $
   case tm of
-    TmInt _       -> tm
-    TmVar _ _ _   -> tm
-    TmVarRaw _    -> tm
-    TmAbs x t1    -> TmAbs x (traverseTm' t1)
-    TmApp t1 t2   -> TmApp (traverseTm' t1) (traverseTm' t2)
-    TmTyAbs x t1  -> TmTyAbs x $ traverseTm' t1
-    TmTyApp t1 ty -> TmTyApp (traverseTm' t1) (fTy ty)
-    TmAnno t1 ty  -> TmAnno (traverseTm' t1) (fTy ty)
-    TmError _     -> tm
+    TmInt _           -> tm
+    TmVar _ _ _       -> tm
+    TmVarRaw _        -> tm
+    TmAbs x t1        -> TmAbs x (traverseTm' t1)
+    TmApp t1 t2       -> TmApp (traverseTm' t1) (traverseTm' t2)
+    TmTyAbs x t1      -> TmTyAbs x $ traverseTm' t1
+    TmTyApp t1 ty     -> TmTyApp (traverseTm' t1) (fTy ty)
+    TmAnno t1 ty      -> TmAnno (traverseTm' t1) (fTy ty)
+    TmAbsAnno x ty t1 -> TmAbsAnno x (fTy ty) (traverseTm' t1)
+    TmError _         -> tm
   where
     tm = getTm t'
     fi = getFI t'
@@ -31,6 +32,7 @@ isVal t =
     TmAbs _ _              -> True
     TmTyAbs _ _            -> True
     TmAnno t1 _ | isVal t1 -> True
+    TmAbsAnno _ _ _        -> True
     _                      -> False
 
 typingEvalSubst :: Type -> Type -> Type
@@ -51,6 +53,7 @@ tyTermSubst c j s t =
     case getTm t of
       TmAbs _ _ -> (t, tyTermSubst (c + 1) j s, tyTermSubst c j s, tySubst' (c + j) s)
       TmTyAbs _ _ -> (t, tyTermSubst (c + 1) j s, tyTermSubst c j s, tySubst' (c + j) s)
+      TmAbsAnno _ _ _ -> (t, tyTermSubst (c + 1) j s, tyTermSubst c j s, tySubst' (c + j) s)
       _ -> (t, tyTermSubst c j s, tyTermSubst c j s, tySubst' (c + j) s)
 
 tyShift' :: Index -> Type -> Type
@@ -84,9 +87,10 @@ shift :: Index -> Index -> TermNode -> UpdatedTmArrTm
 shift c d t =
   UpdatedTmArrTm $
     case getTm t of
-      TmVar k l x -> (TermNode (getFI t) (TmVar (if k < c then k else k + d) (l + d) x), id', id', tyShift' d)
+      TmVar k l x -> (TermNode (getFI t) (TmVar (if k < c then k else k + d) (l + d) x), id', id', tyShift c d)
       TmAbs _ _ -> (t, shift (c + 1) d, shift c d, tyShift c d)
       TmTyAbs _ _ -> (t, shift (c + 1) d, shift c d, tyShift c d)
+      TmAbsAnno _ _ _ -> (t, shift (c + 1) d, shift c d, tyShift c d)
       _ -> (t, shift c d, shift c d, tyShift c d)
 
 subst' :: Index -> TermNode -> TermNode -> TermNode
@@ -99,6 +103,7 @@ subst c j s t =
       TmVar k _ _ -> (if k == j + c then shift' 0 (j + c) s else t, id', id', id :: Type -> Type)
       TmAbs _ _ -> (t, subst (c + 1) j s, subst c j s, id :: Type -> Type)
       TmTyAbs _ _ -> (t, subst (c + 1) j s, subst c j s, id :: Type -> Type)
+      TmAbsAnno _ _ _ -> (t, subst (c + 1) j s, subst c j s, id :: Type -> Type)
       _ -> (t, subst c j s, subst c j s, id :: Type -> Type)
 
 genIndex' :: TermNode -> TermNode
@@ -112,6 +117,7 @@ genIndex ctx t =
       TmVarRaw x -> (TermNode (getFI t) $ TmError ("Free variables are not allowed: " ++ x), genIndex ctx, genIndex ctx, id :: Type -> Type)
       TmAbs x _ -> (t, genIndex (x : ctx), genIndex ctx, id)
       TmTyAbs x _ -> (t, genIndex (x : ctx), genIndex ctx, genIndexType ctx)
+      TmAbsAnno x _ _ -> (t, genIndex (x : ctx), genIndex ctx, genIndexType ctx)
       _ -> (t, genIndex ctx, genIndex ctx, genIndexType ctx)
 
 genIndexType :: NameContext -> Type -> Type
@@ -131,6 +137,52 @@ shiftTypingEnvironment ctx n = map (\s -> case s of TmVarBind x ty -> TmVarBind 
 
 shiftSubtypingEnvironment :: SubtypingEnvironment -> Index -> SubtypingEnvironment
 shiftSubtypingEnvironment ctx n = map (\s -> case s of SolvedTyVar x ty -> SolvedTyVar x (tyShift 0 n ty); _ -> s) ctx
+
+collectFreeTyVars :: Type -> [Index]
+collectFreeTyVars ty = collectFreeTyVars' [] ty
+
+collectFreeTyVars' :: NameContext -> Type -> [Index]
+collectFreeTyVars' ctx ty =
+  case ty of
+    TyInt           -> []
+    TyVarRaw _      -> []
+    TyVar k _ _     -> if k < length ctx then [] else [k - length ctx]
+    TyForAll x ty1  -> collectFreeTyVars' (x : ctx) ty1
+    TyArrow ty1 ty2 -> collectFreeTyVars' ctx ty1 ++ collectFreeTyVars' ctx ty2
+    TyError _       -> []
+
+isClosedType :: SubtypingEnvironment -> Type -> Bool
+isClosedType ctx ty = all (\j -> case j of Just s -> isSolved s; Nothing -> False) svars
+  where
+    fvars = collectFreeTyVars ty
+    svars = map (\k -> ctx !? k) fvars
+
+isSolved :: SubTyEnvBinding -> Bool
+isSolved (SolvedTyVar _ _) = True
+isSolved _                 = False
+
+isUnsolved :: SubTyEnvBinding -> Bool
+isUnsolved (UnsolvedTyVar _) = True
+isUnsolved _                 = False
+
+findSolution :: SubtypingEnvironment -> Name -> Index -> Maybe Type
+findSolution ctx x k =
+  case ctx !? k of
+    Just (SolvedTyVar x' ty') | x == x' -> Just ty'
+    _                                   -> Nothing
+
+substCtxToTy :: SubtypingEnvironment -> Type -> Type
+substCtxToTy ctx ty =
+  case ty of
+    TyInt -> ty
+    TyVarRaw _ -> ty
+    TyVar k _ x ->
+      case findSolution ctx x k of
+        Just ty' -> (tyShift 0 k ty')
+        Nothing  -> ty
+    TyForAll x ty1 -> TyForAll x (substCtxToTy (UniversalTyVar x : ctx) ty1)
+    TyArrow ty1 ty2 -> TyArrow (substCtxToTy ctx ty1) (substCtxToTy ctx ty2)
+    TyError _ -> ty
 
 id' :: TermNode -> UpdatedTmArrTm
 id' t = UpdatedTmArrTm (t, id', id', id :: Type -> Type)
@@ -168,12 +220,13 @@ findTermErrors' t = intercalate "\n" $ findTermErrors t
 findTermErrors :: TermNode -> [String]
 findTermErrors t =
   case getTm t of
-    TmInt _       -> []
-    TmVar _ _ _   -> []
-    TmVarRaw x    -> ["Found TmVarRaw: " ++ x]
-    TmAbs _ t1    -> findTermErrors t1
-    TmApp t1 t2   -> findTermErrors t1 ++ findTermErrors t2
-    TmTyAbs _ t1  -> findTermErrors t1
-    TmTyApp t1 ty -> findTermErrors t1 ++ findTypeErrors ty
-    TmAnno t1 ty  -> findTermErrors t1 ++ findTypeErrors ty
-    TmError e     -> [e]
+    TmInt _            -> []
+    TmVar _ _ _        -> []
+    TmVarRaw x         -> ["Found TmVarRaw: " ++ x]
+    TmAbs _ t1         -> findTermErrors t1
+    TmApp t1 t2        -> findTermErrors t1 ++ findTermErrors t2
+    TmTyAbs _ t1       -> findTermErrors t1
+    TmTyApp t1 ty      -> findTermErrors t1 ++ findTypeErrors ty
+    TmAnno t1 ty       -> findTermErrors t1 ++ findTypeErrors ty
+    TmAbsAnno _ ty1 t1 -> findTypeErrors ty1 ++ findTermErrors t1
+    TmError e          -> [e]

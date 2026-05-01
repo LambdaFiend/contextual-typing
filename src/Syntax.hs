@@ -54,6 +54,7 @@ data Term
   | TmTyAbs Name TermNode
   | TmTyApp TermNode Type
   | TmAnno TermNode Type
+  | TmAbsAnno Name Type TermNode
   | TmError String
   deriving (Eq, Show)
 

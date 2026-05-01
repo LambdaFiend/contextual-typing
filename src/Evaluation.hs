@@ -19,6 +19,12 @@ eval1 t =
       TmApp (TermNode _ (TmAnno (TermNode _ (TmAbs _ t11)) (TyArrow _ ty2))) v2
         | isVal v2 ->
             TmAnno (TermNode (getFI t) (getTm (evalSubst v2 t11))) ty2
+      TmApp (TermNode _ (TmAbsAnno _ _ t11)) v2
+        | isVal v2 ->
+            getTm (evalSubst v2 t11)
+      TmApp (TermNode _ (TmAnno (TermNode _ (TmAbsAnno _ _ t11)) (TyArrow _ ty2))) v2
+        | isVal v2 ->
+            TmAnno (TermNode (getFI t) (getTm (evalSubst v2 t11))) ty2
       TmApp v1 t2
         | isVal v1 ->
             let result = eval1 t2

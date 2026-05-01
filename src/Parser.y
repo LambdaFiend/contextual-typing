@@ -36,8 +36,10 @@ Abs
   | "λ" ManyUpperAbs { $2 }
 
 ManyLowerAbs
-  : NameLower ManyLowerAbs { TermNode (fst $1) (TmAbs (snd $1) $2) }
-  | NameLower "." Term     { TermNode (fst $1) (TmAbs (snd $1) $3) }
+  : NameLower ManyLowerAbs          { TermNode (fst $1) (TmAbs (snd $1) $2) }
+  | NameLower "." Term              { TermNode (fst $1) (TmAbs (snd $1) $3) }
+  | NameLower ":" Type ManyLowerAbs { TermNode (fst $1) (TmAbsAnno (snd $1) $3 $4) }
+  | NameLower ":" Type "." Term     { TermNode (fst $1) (TmAbsAnno (snd $1) $3 $5) }
 
 ManyUpperAbs
   : NameUpper ManyUpperAbs { TermNode (fst $1) (TmTyAbs (snd $1) $2) }
