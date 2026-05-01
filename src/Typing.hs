@@ -23,14 +23,14 @@ infer tctx sctx t =
         _ -> ty1
     ([SType (TyArrow ty1 ty2)], TmAbs x t1) ->
       case infer (TmVarBind x (tyShift 0 1 ty1) : tctx) [SType (tyShift 0 1 ty2)] t1 of
-        TyError e -> TyError ("| infer AT-Lam1: failed to infer e ≡ " ++ showTerm (x : nctx) t1 ++ " assuming " ++ x ++ " assigned to the type A ≡ " ++ showType nctx ty1 ++ " at the top of the environment Γ ≡ " ++ showTypingEnvironment nctx tctx ++ " and the type B ≡ " ++ showType nctx ty2 ++ " as the surrounding context Σ" ++ "\n" ++ e)
+        TyError e -> TyError ("| infer AT-Lam1: failed to infer e ≡ " ++ showTerm (x : nctx) t1 ++ " assuming " ++ x ++ " assigned to the type A ≡ " ++ showType nctx ty1 ++ " at the top of the typing environment Γ ≡ " ++ showTypingEnvironment nctx tctx ++ " and the type B ≡ " ++ showType nctx ty2 ++ " as the surrounding context Σ" ++ "\n" ++ e)
         ty3 -> TyArrow ty1 (tyShift 0 (-1) ty3)
     ((STerm t2 : sctx'), TmAbs x t1) ->
       case infer tctx [] t2 of
         TyError e -> TyError ("| infer AT-Lam2: failed to infer the contextual argument e2 ≡ " ++ showTerm nctx t2 ++ "\n" ++ e)
         ty1 ->
           case infer (TmVarBind x (tyShift 0 1 ty1) : tctx) (shiftSurroundingContext sctx' 1) t1 of
-            TyError e -> TyError ("| infer AT-Lam2: failed to infer the term e ≡ " ++ showTerm (x : nctx) t1 ++ " assuming " ++ x ++ " assigned to the type A ≡ " ++ showType nctx ty1 ++ " at the top of the environment Γ ≡ " ++ showTypingEnvironment nctx tctx ++ " and the smaller surrounding context Σ ≡ " ++ showSurroundingContext nctx sctx' ++ "\n" ++ e)
+            TyError e -> TyError ("| infer AT-Lam2: failed to infer the term e ≡ " ++ showTerm (x : nctx) t1 ++ " assuming " ++ x ++ " assigned to the type A ≡ " ++ showType nctx ty1 ++ " at the top of the typing environment Γ ≡ " ++ showTypingEnvironment nctx tctx ++ " and the smaller surrounding context Σ ≡ " ++ showSurroundingContext nctx sctx' ++ "\n" ++ e)
             ty2 -> TyArrow ty1 (tyShift 0 (-1) ty2)
     (_, TmApp t1 t2) ->
       case infer tctx (STerm t2 : sctx) t1 of
@@ -66,7 +66,7 @@ infer tctx sctx t =
                 (Just [], ty2) -> ty2
                 (Just stctx, _) -> TyError ("| infer AT-Sub: subtype infer returned a subtyping environment Δ expected to be empty, but got ≡ " ++ showSubtypingEnvironment nctx stctx)
                 (Nothing, _) -> TyError ("| infer AT-Sub: subtype infer returned a subtyping environment Δ expected to be empty, but got nothing")
-    (_, _) -> TyError ("| infer No rules apply: the environment Γ ≡ " ++ showTypingEnvironment nctx tctx ++ ", the surrounding context Σ ≡ " ++ showSurroundingContext nctx sctx ++ " and the term e ≡ " ++ showTerm nctx t)
+    (_, _) -> TyError ("| infer No rules apply: the typing environment Γ ≡ " ++ showTypingEnvironment nctx tctx ++ ", the surrounding context Σ ≡ " ++ showSurroundingContext nctx sctx ++ " and the term e ≡ " ++ showTerm nctx t)
   where
     nctx = map getNameTy tctx
 
@@ -180,7 +180,7 @@ subtypeInfer tctx stctx ty sctx =
                 (UnsolvedTyVar x' : _) -> (Nothing, TyError ("| subtype infer AS-Infs: expected unsolved α ≡ " ++ x ++ " but got unsolved α ≡ " ++ x'))
                 (_ : _) -> (Nothing, TyError ("| subtype infer AS-Infs: expected unsolved type variable for α ≡ " ++ x ++ " in the subtyping environment Δ ≡ " ++ showSubtypingEnvironment ntctx stctx ++ " but didn't get it"))
                 [] -> (Nothing, TyError ("| subtype infer AS-Infs: index out of bounds for " ++ x ++ " in the subtyping environment Δ ≡ " ++ showSubtypingEnvironment ntctx stctx))
-    (_, _) -> (Nothing, TyError ("| subtype infer No rules apply: the environment Γ ≡ " ++ showTypingEnvironment ntctx tctx ++ ", the subtyping environment Δ ≡ " ++ showSubtypingEnvironment ntctx stctx ++ ", the type A ≡ " ++ showType nctx ty ++ " and the surrounding context Σ ≡ " ++ showSurroundingContext ntctx sctx))
+    (_, _) -> (Nothing, TyError ("| subtype infer No rules apply: the typing environment Γ ≡ " ++ showTypingEnvironment ntctx tctx ++ ", the subtyping environment Δ ≡ " ++ showSubtypingEnvironment ntctx stctx ++ ", the type A ≡ " ++ showType nctx ty ++ " and the surrounding context Σ ≡ " ++ showSurroundingContext ntctx sctx))
   where
     nctx = nstctx ++ ntctx
     ntctx = map getNameTy tctx
@@ -254,7 +254,7 @@ subtypeCheck tctx stctx ty1 pol ty2 =
             (_ : _) -> (Nothing, Just ("| subtype check AS-∀: expected the top of Δ' to be a variable binding of α ≡ " ++ x2 ++ " but got another name"))
             [] -> (Nothing, Just ("| subtype check AS-∀: the subtyping environment Δ' is empty and shouldn't be"))
         (Nothing, _) -> (Nothing, Just ("| subtype check AS-∀: expected subtyping environment Δ' but got nothing"))
-    (_, _, _) -> (Nothing, Just ("| subtype check No rules apply: the environment Γ ≡ " ++ showTypingEnvironment ntctx tctx ++ ", the subtyping environment Δ ≡ " ++ showSubtypingEnvironment ntctx stctx ++ ", the type A ≡ " ++ showType nctx ty1 ++ ", the polarity is " ++ showPolarity pol ++ " and the type B ≡ " ++ showType nctx ty2))
+    (_, _, _) -> (Nothing, Just ("| subtype check No rules apply: the typing environment Γ ≡ " ++ showTypingEnvironment ntctx tctx ++ ", the subtyping environment Δ ≡ " ++ showSubtypingEnvironment ntctx stctx ++ ", the type A ≡ " ++ showType nctx ty1 ++ ", the polarity is " ++ showPolarity pol ++ " and the type B ≡ " ++ showType nctx ty2))
   where
     nctx = nstctx ++ ntctx
     ntctx = map getNameTy tctx
