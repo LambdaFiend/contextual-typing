@@ -42,7 +42,7 @@ infer tctx sctx t =
         TyError e -> TyError ("| infer AT-TLam1: failed to infer the term e ≡ " ++ showTerm (x : nctx) t1 ++ " assuming the type variable α ≡ " ++ x ++ " at the top of the typing environment Γ ≡ " ++ showTypingEnvironment nctx tctx ++ " and assuming the empty surrounding context Σ" ++ "\n" ++ e)
         ty1 -> TyForAll x ty1
     ([SType (TyForAll _ ty1)], TmTyAbs x2 t1) ->
-      case infer (TyVarBind x2 : tctx) [SType (tySubst 0 0 (TyVar 1 1 x2) ty1)] t1 of
+      case infer (TyVarBind x2 : tctx) [SType (tySubst 0 0 (TyVar 0 1 x2) ty1)] t1 of
         TyError e -> TyError ("| infer AT-TLam2: failed to infer the term e ≡ " ++ showTerm (x2 : nctx) t1 ++ " assuming the type B ≡ " ++ showType (x2 : nctx) ty1 ++ " as the surrounding context Σ and the type variable α ≡ " ++ x2 ++ " at the top of the typing environment" ++ "\n" ++ e)
         ty2 -> TyForAll x2 ty2
     (_, TmTyApp t1 ty1) ->
@@ -209,7 +209,7 @@ subtypeCheck tctx stctx ty1 pol ty2 =
       | x1 == x2 && k1 == k2 ->
           if ((k1 < length tctx && elem x1 ntctx) || (k1 < length stctx && elem x1 nstctx))
             then (Just stctx, Nothing)
-            else (Nothing, Just ("| subtype check AS-UVar: α ≡ " ++ x1 ++ " is either out-of-scope or somehow does not belong to the typing environment Γ ≡ " ++ showTypingEnvironment ntctx tctx ++ " and to the Δ ≡ " ++ showSubtypingEnvironment ntctx stctx))
+            else (Nothing, Just ("| subtype check AS-UVar: α ≡ " ++ x1 ++ show k1 ++ show k2 ++ x2 ++ " is either out-of-scope or somehow does not belong to the typing environment Γ ≡ " ++ showTypingEnvironment ntctx tctx ++ " and to the Δ ≡ " ++ showSubtypingEnvironment ntctx stctx))
     (TyVar k _ x, PositivePolarity, _)
       | k < length stctx && (case stctx !? k of Just s -> isUnsolved s; Nothing -> False) ->
           case drop (k - 1) stctx of
@@ -246,7 +246,7 @@ subtypeCheck tctx stctx ty1 pol ty2 =
             (Nothing, _) -> (Nothing, Just ("| subtype check AS-Arr: expected subtyping environment Δ' but got nothing"))
         (Nothing, _) -> (Nothing, Just ("| subtype check AS-Arr: expected subtyping environment Δ' but got nothing"))
     (TyForAll _ ty11, _, TyForAll x2 ty21) ->
-      case subtypeCheck tctx (UniversalTyVar x2 : stctx) (tySubst 0 0 (TyVar 1 1 x2) ty11) pol ty21 of
+      case subtypeCheck tctx (UniversalTyVar x2 : stctx) (tySubst 0 0 (TyVar 0 1 x2) ty11) pol ty21 of
         (_, Just e) -> (Nothing, Just ("| subtype check AS-Arr: failed to subtype check the type A ≡ " ++ showType (x2 : nctx) ty11 ++ " against the type B ≡ " ++ showType (x2 : nctx) ty21 ++ " assuming the universal type variable α ≡ " ++ x2 ++ " at the top of the subtyping environment Δ ≡ " ++ showSubtypingEnvironment ntctx stctx ++ "\n" ++ e))
         (Just stctx', Nothing) ->
           case stctx' of
