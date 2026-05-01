@@ -90,7 +90,6 @@ main' :: Environment -> CommandList -> InputT IO ()
 main' env comml = do
   maybeCommand <- getInputLine "lctict> "
   let command = case maybeCommand of Just c -> c; Nothing -> ""
-  outputStrLn ""
   let commToks = (\comm -> case comm of (x : xs) -> map toLower x : xs; [] -> []) $ words command
   env' <- case (commToks) of
     [] -> return env
