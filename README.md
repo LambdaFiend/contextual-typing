@@ -1,16 +1,16 @@
-# CICCT
+# LCTICT
 
-**C**ontextual **I**ntersection **C**alculus **C**ontextual **T**yping.
+**Local** **C**ontextual **T**ype **I**nference **C**ontextual **T**yping.
 
 ## An informal introduction
 
-Please refer to Xu Xue's and Bruno Oliveira's paper Contextual Typing [2024].
+Please refer to Xu Xue's, Chen Cui's, Shengyi Jiang's and Bruno Oliveira's paper Local Contextual Type Inference \[2026\].
 
 The other branches of this repository are different implementations of contextual typing.
 
 This was made for a university project under the guidance of **Professor Mário Florido**.
 
-## Actually running CICCT
+## Actually running LCTICT
 
 This should suffice:
 
@@ -18,11 +18,11 @@ This should suffice:
 
 ```cabal run```
 
-## Using CICCT
+## Using LCTICT
 
-CICCT is a REPL. So, in order to use it, you may either write into a file inside the ```programs``` directory, or directly use the REPL's mid-execution features.
+LCTICT is a REPL. So, in order to use it, you may either write into a file inside the ```programs``` directory, or directly use the REPL's mid-execution features.
 
-## Understanding CICCT's Language
+## Understanding LCTICT's Language
 
 Check the referenced article, the example inputs from ```programs/default_tests.txt``` and try using the REPL for a little while.
 
@@ -30,29 +30,22 @@ Check the referenced article, the example inputs from ```programs/default_tests.
 
 Regarding the Typing for each syntax construct, I might add it later on. This system is far more complex than that of VSBDT, which means I can't simply describe the typing of each contruct using a small table. I will have to think this through first.
 
-| Syntax | Meaning |
+| Terms | Meaning |
 | :----: | :------ |
-| i | Integer, a number, of type Int |
-| u | Float, a number, of type Float |
-| {} | An empty record, of type Top |
-| x | A term variable, of type<br>depending on the environment |
-| \x.t1 | A term abstraction, of type<br>T -> T1, where T is the<br>type given to x and T1 of t1 |
-| t1 t2 | A term application, of type<br>T1, where T2 -> T1 is the<br>type of t1 and T2 of t2 |
-| + | The plus operator, of type<br>(Int -> Int -> Int) & (Float -> Float -> Float) |
-| +ⁱ\<i\> | A plus operator having received an<br>integer i as its first argument, of<br>type (Int -> Int) and the smaller i<br>is not the same as the big one<br>as the big one is the previously<br>received number, note that this is only<br>achievable after an evaluation |
-| +ᶠ\<u\> | A plus operator having received a<br>float u as its first argument, of<br>type (Float -> Float), and much like the<br>previous construct, it's only achievable after<br>an evaluation |
-| t.a | A projection, where a is label, and<br>t a term, and its type is Ta<br>where the type of t is {Tb, ..., Ta, ...} |
-| {a1=t1, ..., an=tn} | A record, where an is a label and<br>tn is a term, and its type<br>is {a1 : T1, ..., an : Tn} |
-| t : T | An annotation, where its type<br>is T should t's type match it |
+| i | The integer, a number, of type Int |
+| x | The term variable, of type<br>depending on the environment,<br>and requires a term abstraction to abstract it |
+| \x.t1 | The term abstraction, of type<br>T -> T1, where T is the<br>type given to x and T1 of t1,<br>and x, the name of the term variable<br>must not be capitalized, for otherwise it<br>becomes a type variable abstraction |
+| t1 t2 | The term application, of type<br>T1, where T2 -> T1 is the<br>type of t1 and T2 of t2 |
+| \X.t1 | The type abstraction, of type<br>∀X.T, where T is the type of t1,<br>and X, the name of the abstracted type<br>variable must be capitalized, for otherwise it<br>becomes a term variable abstraction |
+| t1@T | The type application, of type<br>\[X\ -> T]T1, where ∀X.T1 is the type of t1<br>and T is the T from @T |
+| t1 : T | The annotation of type<br>T, should t1's type T1 match it |
 
 | Types | Meaning |
 | :---: | :------ |
-| Int | For integers i |
-| Float | For floats u |
-| Top | For empty records {} |
-| T1 -> T2 | For abstractions/functions |
-| {a1 : T1, ..., an : Tn} | For records |
-| T1 & T2 | For intersections |
+| Int | The integer type, which is for integers i |
+| X | The type variable, which requires a<br>type abstraction to abstract it |
+| T1 -> T2 | The arrow type, which is for<br>term abstractions/functions |
+| ∀X.T1 | The for-all type, which is for<br>type abstractions |
 
 ## REPL's Commands
 
