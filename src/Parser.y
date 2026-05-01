@@ -32,8 +32,16 @@ Term
   | Abs { $1 }
 
 Abs
-  : "λ" NameLower "." Term { TermNode (tokenPos $1) (TmAbs (snd $2) $4) }
-  | "λ" NameUpper "." Term { TermNode (tokenPos $1) (TmTyAbs (snd $2) $4) }
+  : "λ" ManyLowerAbs { $2 }
+  | "λ" ManyUpperAbs { $2 }
+
+ManyLowerAbs
+  : NameLower ManyLowerAbs { TermNode (fst $1) (TmAbs (snd $1) $2) }
+  | NameLower "." Term     { TermNode (fst $1) (TmAbs (snd $1) $3) }
+
+ManyUpperAbs
+  : NameUpper ManyUpperAbs { TermNode (fst $1) (TmTyAbs (snd $1) $2) }
+  | NameUpper "." Term     { TermNode (fst $1) (TmTyAbs (snd $1) $3) }
 
 App
   : App Anno     { TermNode (getFI $1) (TmApp $1 $2) }
@@ -60,7 +68,11 @@ Type
   : TypeForAll { $1 }
   | TypeArrow  { $1 }
 
-TypeForAll : "∀" NameUpper "." Type { TyForAll (snd $2) $4 }
+TypeForAll : "∀" ManyTypeForAll { $2 }
+
+ManyTypeForAll
+  : NameUpper ManyTypeForAll { TyForAll (snd $1) $2 }
+  | NameUpper "." Type       { TyForAll (snd $1) $3 }
 
 TypeArrow
   : TypeAtom "→" TypeArrow { TyArrow $1 $3 }
