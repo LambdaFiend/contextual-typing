@@ -9,6 +9,7 @@ eval1 t =
   let tm = getTm t; fi = getFI t
    in TermNode fi $
         case tm of
+          TmApp (TermNode _ (TmAnno (TermNode fi1 (TmAnno t11 ty1)) _)) t2 -> TmApp (TermNode fi1 (TmAnno t11 ty1)) t2
           TmApp (TermNode _ (TmConst ConstPlus)) (TermNode _ (TmConst (ConstInt n))) -> TmConst (ConstPlusInt n)
           TmApp (TermNode _ (TmConst ConstPlus)) (TermNode _ (TmConst (ConstFloat u))) -> TmConst (ConstPlusFloat u)
           TmApp (TermNode _ (TmConst (ConstPlusInt n1))) (TermNode _ (TmConst (ConstInt n2))) -> TmConst (ConstInt (n1 + n2))
