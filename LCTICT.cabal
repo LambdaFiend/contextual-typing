@@ -52,7 +52,8 @@ executable LCTICT
     base ^>=4.20.2.0,
     array ^>=0.5.8.0,
     directory ^>=1.3.10.1,
-    ansi-terminal ^>=1.1.5
+    ansi-terminal ^>=1.1.5,
+    haskeline ^>=0.8.2.1
 
   hs-source-dirs:
     app
