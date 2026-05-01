@@ -33,10 +33,14 @@ Check the referenced article, the example inputs from ```programs/default_tests.
 | i | The integer, a number, of type Int |
 | x | The term variable, of type<br>depending on the environment,<br>and requires a term abstraction to abstract it |
 | \x.t1 | The term abstraction, of type<br>T -> T1, where T is the<br>type given to x and T1 of t1,<br>and x, the name of the term variable<br>must not be capitalized, for otherwise it<br>becomes a type variable abstraction |
+| \x: T.t1 | The annotated term abstraction, of type<br>T -> T1, where T is the T from<br>the annotated T of \x: T.t1,<br>and x, the name of the term variable<br>must not be capitalized, for otherwise it<br>becomes invalid syntax |
 | t1 t2 | The term application, of type<br>T1, where T2 -> T1 is the<br>type of t1 and T2 of t2 |
 | \X.t1 | The type abstraction, of type<br>∀X.T, where T is the type of t1,<br>and X, the name of the abstracted type<br>variable must be capitalized, for otherwise it<br>becomes a term variable abstraction |
 | t1@T | The type application, of type<br>\[X\ -> T]T1, where ∀X.T1 is the type of t1<br>and T is the T from @T |
 | t1 : T | The annotation of type<br>T, should t1's type T1 match it |
+| let x = t2 in t1 | The let-binding, which in this case is<br>syntactic sugar for ((\x.t1) t2) |
+| let x: T = t2 in t1 | The let-binding, which in this case is<br>syntactic sugar for ((\x: T.t1) t2) |
+
 
 | Types | Meaning |
 | :---: | :------ |
