@@ -1,6 +1,7 @@
 module Main where
 
 import           Control.Exception
+import           Control.Monad.IO.Class   (liftIO)
 import           Data.Char
 import           Data.List
 import           Display
@@ -10,6 +11,7 @@ import           Lexer
 import           Parser
 import           Syntax
 import           System.Console.ANSI
+import           System.Console.Haskeline
 import           System.Directory
 import           System.IO
 import           Typing
@@ -72,22 +74,23 @@ getHelp =
         : "<program>"
         : []
 
+customHaskelineSettings :: Settings IO
+customHaskelineSettings = defaultSettings {historyFile = Just "command_history.txt"}
+
 main :: IO ()
 main = do
-  hSetBuffering stdin NoBuffering
-  hSetBuffering stdout NoBuffering
-  hSetEcho stdin False
   comml <- handleCommHistFile "command_history.txt"
   evaluate (length comml)
   putStrLn "Welcome to Local Contextual Type Inference Contextual Typing, LCTICT for short!"
   putStrLn "Enter :? for help with commands"
-  main' [] $ reverse $ lines comml
+  runInputT customHaskelineSettings (main' [] (reverse (lines comml)))
+  return ()
 
-main' :: Environment -> CommandList -> IO ()
+main' :: Environment -> CommandList -> InputT IO ()
 main' env comml = do
-  putStr "lctict> "
-  command <- readLine' comml
-  putStrLn ""
+  maybeCommand <- getInputLine "lctict> "
+  let command = case maybeCommand of Just c -> c; Nothing -> ""
+  outputStrLn ""
   let commToks = (\comm -> case comm of (x : xs) -> map toLower x : xs; [] -> []) $ words command
   env' <- case (commToks) of
     [] -> return env
@@ -95,154 +98,154 @@ main' env comml = do
       let k' = read k
           env' = drop ((k' - 1) * 10) $ take (k' * 10) env
       errs <- typeEnvironment env'
-      if errs /= [] then putStrLn "" else return ()
-      putStrLn $ intercalate "\n" errs
-      if errs /= [] then putStrLn "" else return ()
-      putStr $ "There was a total of "
-      setSGR [SetColor Foreground Vivid Red]
-      putStr $ show (length errs)
-      setSGR [Reset]
-      putStrLn $ " type errors " ++ "on page " ++ k
+      if errs /= [] then outputStrLn "" else return ()
+      outputStrLn $ intercalate "\n" errs
+      if errs /= [] then outputStrLn "" else return ()
+      outputStr $ "There was a total of "
+      liftIO $ setSGR [SetColor Foreground Vivid Red]
+      liftIO $ putStr $ show (length errs)
+      liftIO $ setSGR [Reset]
+      liftIO $ putStrLn $ " type errors " ++ "on page " ++ k
       return env
     [eenv, k] | and (map isDigit k) && elem eenv [":ee", ":eenv", ":evalenv"] -> do
       let k' = read k
           env' = drop ((k' - 1) * 10) $ take (k' * 10) env
       errs <- evalEnvironment env'
-      if errs /= [] then putStrLn "" else return ()
-      putStrLn $ intercalate "\n" errs
-      if errs /= [] then putStrLn "" else return ()
-      putStr $ "There was a total of "
-      setSGR [SetColor Foreground Vivid Red]
-      putStr $ show (length errs)
-      setSGR [Reset]
-      putStrLn $ " evaluation errors " ++ "on page " ++ k
+      if errs /= [] then liftIO $ putStrLn "" else return ()
+      liftIO $ putStrLn $ intercalate "\n" errs
+      if errs /= [] then liftIO $ putStrLn "" else return ()
+      liftIO $ putStr $ "There was a total of "
+      liftIO $ setSGR [SetColor Foreground Vivid Red]
+      liftIO $ putStr $ show (length errs)
+      liftIO $ setSGR [Reset]
+      liftIO $ putStrLn $ " evaluation errors " ++ "on page " ++ k
       return env
     [senv, k] | and (map isDigit k) && elem senv [":showenv", ":showe", ":senv", ":se"] -> do
       let k' = read k
           env' = drop ((k' - 1) * 10) $ take (k' * 10) env
       errs <- showEnvironment env'
-      if errs /= [] then putStrLn "" else return ()
-      putStrLn $ intercalate "\n" errs
-      if errs /= [] then putStrLn "" else return ()
-      putStr $ "There was a total of "
-      setSGR [SetColor Foreground Vivid Red]
-      putStr $ show (length errs)
-      setSGR [Reset]
-      putStrLn $ " display errors " ++ "on page " ++ k
+      if errs /= [] then liftIO $ putStrLn "" else return ()
+      liftIO $ putStrLn $ intercalate "\n" errs
+      if errs /= [] then liftIO $ putStrLn "" else return ()
+      liftIO $ putStr $ "There was a total of "
+      liftIO $ setSGR [SetColor Foreground Vivid Red]
+      liftIO $ putStr $ show (length errs)
+      liftIO $ setSGR [Reset]
+      liftIO $ putStrLn $ " display errors " ++ "on page " ++ k
       return env
     [senv] | elem senv [":showenv", ":showe", ":senv", ":se"] -> do
       errs <- showEnvironment env
-      if errs /= [] then putStrLn "" else return ()
-      putStrLn $ intercalate "\n" errs
-      if errs /= [] then putStrLn "" else return ()
-      putStr $ "There was a total of "
-      setSGR [SetColor Foreground Vivid Red]
-      putStr $ show (length errs)
-      setSGR [Reset]
-      putStrLn " display errors in the environment"
+      if errs /= [] then liftIO $ putStrLn "" else return ()
+      liftIO $ putStrLn $ intercalate "\n" errs
+      if errs /= [] then liftIO $ putStrLn "" else return ()
+      liftIO $ putStr $ "There was a total of "
+      liftIO $ setSGR [SetColor Foreground Vivid Red]
+      liftIO $ putStr $ show (length errs)
+      liftIO $ setSGR [Reset]
+      liftIO $ putStrLn " display errors in the environment"
       return env
     [cenv] | elem cenv [":clearenv", ":clear", ":cenv", ":ce", ":c"] -> do
-      setSGR [SetColor Foreground Vivid Green]
-      putStrLn "Environment cleared"
-      setSGR [Reset]
+      liftIO $ setSGR [SetColor Foreground Vivid Green]
+      liftIO $ putStrLn "Environment cleared"
+      liftIO $ setSGR [Reset]
       return []
     [tenv] | elem tenv [":te", ":tenv", ":typeenv"] -> do
       errs <- typeEnvironment env
-      if errs /= [] then putStrLn "" else return ()
-      putStrLn $ intercalate "\n" errs
-      if errs /= [] then putStrLn "" else return ()
-      putStr $ "There was a total of "
-      setSGR [SetColor Foreground Vivid Red]
-      putStr $ show (length errs)
-      setSGR [Reset]
-      putStrLn " type errors in the environment"
+      if errs /= [] then liftIO $ putStrLn "" else return ()
+      liftIO $ putStrLn $ intercalate "\n" errs
+      if errs /= [] then liftIO $ putStrLn "" else return ()
+      liftIO $ putStr $ "There was a total of "
+      liftIO $ setSGR [SetColor Foreground Vivid Red]
+      liftIO $ putStr $ show (length errs)
+      liftIO $ setSGR [Reset]
+      liftIO $ putStrLn " type errors in the environment"
       return env
     [eenv] | elem eenv [":ee", ":eenv", ":evalenv"] -> do
       errs <- evalEnvironment env
-      if errs /= [] then putStrLn "" else return ()
-      putStrLn $ intercalate "\n" errs
-      if errs /= [] then putStrLn "" else return ()
-      putStr $ "There was a total of "
-      setSGR [SetColor Foreground Vivid Red]
-      putStr $ show (length errs)
-      setSGR [Reset]
-      putStrLn " evaluation errors in the environment"
+      if errs /= [] then liftIO $ putStrLn "" else return ()
+      liftIO $ putStrLn $ intercalate "\n" errs
+      if errs /= [] then liftIO $ putStrLn "" else return ()
+      liftIO $ putStr $ "There was a total of "
+      liftIO $ setSGR [SetColor Foreground Vivid Red]
+      liftIO $ putStr $ show (length errs)
+      liftIO $ setSGR [Reset]
+      liftIO $ putStrLn " evaluation errors in the environment"
       return env
     [quit] | elem quit [":q", ":quit"] -> do
-      setSGR [SetColor Foreground Vivid Yellow]
-      putStrLn "Leaving lctict."
-      setSGR [Reset]
+      liftIO $ setSGR [SetColor Foreground Vivid Yellow]
+      liftIO $ putStrLn "Leaving lctict."
+      liftIO $ setSGR [Reset]
       return [("", TermNode noPos (TmError "Quit."))]
     [move, name1, name2] | elem move [":move", ":mv", ":m"] -> do
       let x = lookup name2 env
       if x == Nothing
         then do
-          setSGR [SetColor Foreground Vivid Red]
-          putStrLn "Variable not in scope"
-          setSGR [Reset]
+          liftIO $ setSGR [SetColor Foreground Vivid Red]
+          liftIO $ putStrLn "Variable not in scope"
+          liftIO $ setSGR [Reset]
           return env
         else do
           let env' = deleteByFstEnv name1 env
-          setSGR [SetColor Foreground Vivid Green]
-          putStrLn "Variable moved"
-          setSGR [Reset]
+          liftIO $ setSGR [SetColor Foreground Vivid Green]
+          liftIO $ putStrLn "Variable moved"
+          liftIO $ setSGR [Reset]
           return ((name1, fromMaybe x) : env')
     [avars] | elem avars [":av?", ":allvars"] -> do
-      setSGR [SetColor Foreground Vivid Yellow]
-      putStrLn $ "All variables in the environment are:"
-      setSGR [Reset]
-      putStrLn $ (intercalate "\n") $ map fst env
+      liftIO $ setSGR [SetColor Foreground Vivid Yellow]
+      liftIO $ putStrLn $ "All variables in the environment are:"
+      liftIO $ setSGR [Reset]
+      liftIO $ putStrLn $ (intercalate "\n") $ map fst env
       return env
     [vars] | elem vars [":v?", ":vars"] -> do
-      setSGR [SetColor Foreground Vivid Yellow]
-      putStrLn $ "The variables for page number 1 (10 vars per page) are:"
-      setSGR [Reset]
-      putStrLn $ (intercalate "\n") $ (take 10) $ map fst env
+      liftIO $ setSGR [SetColor Foreground Vivid Yellow]
+      liftIO $ putStrLn $ "The variables for page number 1 (10 vars per page) are:"
+      liftIO $ setSGR [Reset]
+      liftIO $ putStrLn $ (intercalate "\n") $ (take 10) $ map fst env
       return env
     [vars, k]
       | and (map isDigit k) && elem vars [":v?", ":vars"] ->
           let k' = read k
            in do
-                setSGR [SetColor Foreground Vivid Yellow]
-                putStrLn $ "The variables for page number " ++ k ++ " (10 vars per page) are:"
-                setSGR [Reset]
-                putStrLn $ (intercalate "\n") $ (drop (10 * (k' - 1))) $ (take (10 * k')) $ map fst env
+                liftIO $ setSGR [SetColor Foreground Vivid Yellow]
+                liftIO $ putStrLn $ "The variables for page number " ++ k ++ " (10 vars per page) are:"
+                liftIO $ setSGR [Reset]
+                liftIO $ putStrLn $ (intercalate "\n") $ (drop (10 * (k' - 1))) $ (take (10 * k')) $ map fst env
                 return env
     [load, file] | elem load [":load", ":l"] -> do
-      fileExists <- doesFileExist ("programs/" ++ file)
+      fileExists <- liftIO $ doesFileExist ("programs/" ++ file)
       if fileExists
         then do
-          txt <- readFile ("programs/" ++ file)
+          txt <- liftIO $ readFile ("programs/" ++ file)
           let comms = simplyParseCommands' $ words txt
           asts <- getMultipleASTsFromTerms comms
           let env' = foldr deleteByFstEnv env (map fst asts)
-          setSGR [SetColor Foreground Vivid Green]
-          putStrLn $ "Loaded a total of " ++ (show $ length comms) ++ " environment variables"
-          setSGR [Reset]
+          liftIO $ setSGR [SetColor Foreground Vivid Green]
+          liftIO $ putStrLn $ "Loaded a total of " ++ (show $ length comms) ++ " environment variables"
+          liftIO $ setSGR [Reset]
           return $ asts ++ env'
         else do
-          setSGR [SetColor Foreground Vivid Red]
-          putStrLn "Path leads to nowhere"
-          setSGR [Reset]
+          liftIO $ setSGR [SetColor Foreground Vivid Red]
+          liftIO $ putStrLn "Path leads to nowhere"
+          liftIO $ setSGR [Reset]
           return env
     [var, name] | elem var [":var", ":v", ":assign", ":a"] -> do
-      txt <- getTxtFromInput
+      txt <- liftIO getTxtFromInput
       term <- getTermFromAST txt
       case term of
         Left e -> return env
         Right term' -> do
           let env' = deleteByFstEnv name env
-          setSGR [SetColor Foreground Vivid Green]
-          putStrLn "Variable assigned"
-          setSGR [Reset]
+          liftIO $ setSGR [SetColor Foreground Vivid Green]
+          liftIO $ putStrLn "Variable assigned"
+          liftIO $ setSGR [Reset]
           return ((name, term') : env')
     [ty, name] | elem ty [":type", ":ty", ":t"] -> do
       let x = lookup name env
       if x == Nothing
         then do
-          setSGR [SetColor Foreground Vivid Red]
-          putStrLn "Variable not in scope"
-          setSGR [Reset]
+          liftIO $ setSGR [SetColor Foreground Vivid Red]
+          liftIO $ putStrLn "Variable not in scope"
+          liftIO $ setSGR [Reset]
           return env
         else do
           printType $ fromMaybe x
@@ -251,9 +254,9 @@ main' env comml = do
       let x = lookup name env
       if x == Nothing
         then do
-          setSGR [SetColor Foreground Vivid Red]
-          putStrLn "Variable not in scope"
-          setSGR [Reset]
+          liftIO $ setSGR [SetColor Foreground Vivid Red]
+          liftIO $ putStrLn "Variable not in scope"
+          liftIO $ setSGR [Reset]
           return env
         else do
           printEval $ fromMaybe x
@@ -262,23 +265,23 @@ main' env comml = do
       let x = lookup name env
       if x == Nothing
         then do
-          setSGR [SetColor Foreground Vivid Red]
-          putStrLn "Variable not in scope"
-          setSGR [Reset]
+          liftIO $ setSGR [SetColor Foreground Vivid Red]
+          liftIO $ putStrLn "Variable not in scope"
+          liftIO $ setSGR [Reset]
           return env
         else do
           printEvalN (read k) $ fromMaybe x
           return env
     [help] | elem help [":help", ":h", ":?"] -> do
-      putStrLn getHelp
+      liftIO $ putStrLn getHelp
       return env
     [s, name] | elem s [":show", ":sh", ":s"] -> do
       let x = lookup name env
       if x == Nothing
         then do
-          setSGR [SetColor Foreground Vivid Red]
-          putStrLn "Variable not in scope"
-          setSGR [Reset]
+          liftIO $ setSGR [SetColor Foreground Vivid Red]
+          liftIO $ putStrLn "Variable not in scope"
+          liftIO $ setSGR [Reset]
           return env
         else do
           printTerm $ fromMaybe x
@@ -289,9 +292,9 @@ main' env comml = do
           let x = lookup name2 env
           if x == Nothing
             then do
-              setSGR [SetColor Foreground Vivid Red]
-              putStrLn "Variable not in scope"
-              setSGR [Reset]
+              liftIO $ setSGR [SetColor Foreground Vivid Red]
+              liftIO $ putStrLn "Variable not in scope"
+              liftIO $ setSGR [Reset]
               return env
             else do
               let term = fromMaybe x
@@ -305,9 +308,9 @@ main' env comml = do
           let x = lookup name2 env
           if x == Nothing
             then do
-              setSGR [SetColor Foreground Vivid Red]
-              putStrLn "Variable not in scope"
-              setSGR [Reset]
+              liftIO $ setSGR [SetColor Foreground Vivid Red]
+              liftIO $ putStrLn "Variable not in scope"
+              liftIO $ setSGR [Reset]
               return env
             else do
               let term = fromMaybe x
@@ -315,35 +318,35 @@ main' env comml = do
               let env' = deleteByFstEnv name1 env
               return ((name1, term') : env')
     ((':' : _) : _) -> do
-      setSGR [SetColor Foreground Vivid Red]
-      putStrLn "Unknown command"
-      setSGR [Reset]
+      liftIO $ setSGR [SetColor Foreground Vivid Red]
+      liftIO $ putStrLn "Unknown command"
+      liftIO $ setSGR [Reset]
       return env
     ws -> do
       term <- getTermFromAST command
       case term of
         Left e -> return env
         Right term' -> do
-          setSGR [SetColor Foreground Vivid Yellow]
-          putStrLn "Showing:"
-          setSGR [Reset]
+          liftIO $ setSGR [SetColor Foreground Vivid Yellow]
+          liftIO $ putStrLn "Showing:"
+          liftIO $ setSGR [Reset]
           printTerm term'
-          putStrLn ""
-          setSGR [SetColor Foreground Vivid Yellow]
-          putStrLn "Typing:"
-          setSGR [Reset]
+          liftIO $ putStrLn ""
+          liftIO $ setSGR [SetColor Foreground Vivid Yellow]
+          liftIO $ putStrLn "Typing:"
+          liftIO $ setSGR [Reset]
           printType term'
-          putStrLn ""
-          setSGR [SetColor Foreground Vivid Yellow]
-          putStrLn "Evaluation:"
-          setSGR [Reset]
+          liftIO $ putStrLn ""
+          liftIO $ setSGR [SetColor Foreground Vivid Yellow]
+          liftIO $ putStrLn "Evaluation:"
+          liftIO $ setSGR [Reset]
           printEval term'
           return env
   if env' == [("", TermNode noPos (TmError "Quit."))]
     then return ()
     else do
       let comml' = if (filter (/= ' ') command) == "" then comml else (command : comml)
-      appendFile "command_history.txt" (command ++ "\n")
+      liftIO $ appendFile "command_history.txt" (command ++ "\n")
       main' env' comml'
 
 deleteByFstEnv :: String -> Environment -> Environment
@@ -352,12 +355,12 @@ deleteByFstEnv x xs =
     (prev, _ : next) -> prev ++ next
     _                -> xs
 
-showEnvironment :: Environment -> IO [String]
+showEnvironment :: Environment -> InputT IO [String]
 showEnvironment [] = return []
 showEnvironment (e : env) = do
-  setSGR [SetColor Foreground Vivid Green]
-  putStrLn $ fst e ++ ":"
-  setSGR [Reset]
+  liftIO $ setSGR [SetColor Foreground Vivid Green]
+  liftIO $ putStrLn $ fst e ++ ":"
+  liftIO $ setSGR [Reset]
   first <- printTerm $ snd e
   case first of
     Left _ -> do
@@ -367,12 +370,12 @@ showEnvironment (e : env) = do
       rest <- showEnvironment env
       return rest
 
-typeEnvironment :: Environment -> IO [String]
+typeEnvironment :: Environment -> InputT IO [String]
 typeEnvironment [] = return []
 typeEnvironment (e : env) = do
-  setSGR [SetColor Foreground Vivid Green]
-  putStrLn $ fst e ++ ":"
-  setSGR [Reset]
+  liftIO $ setSGR [SetColor Foreground Vivid Green]
+  liftIO $ putStrLn $ fst e ++ ":"
+  liftIO $ setSGR [Reset]
   first <- printType $ snd e
   case first of
     Left _ -> do
@@ -382,12 +385,12 @@ typeEnvironment (e : env) = do
       rest <- typeEnvironment env
       return rest
 
-evalEnvironment :: Environment -> IO [String]
+evalEnvironment :: Environment -> InputT IO [String]
 evalEnvironment [] = return []
 evalEnvironment (e : env) = do
-  setSGR [SetColor Foreground Vivid Green]
-  putStrLn $ fst e ++ ":"
-  setSGR [Reset]
+  liftIO $ setSGR [SetColor Foreground Vivid Green]
+  liftIO $ putStrLn $ fst e ++ ":"
+  liftIO $ setSGR [Reset]
   first <- printEval $ snd e
   case first of
     TermNode noPos (TmError "") -> do
@@ -419,10 +422,12 @@ handleCommHistFile file = do
       writeFile file ""
       return ""
 
-readLine' :: CommandList -> IO String
+{--
+
+readLine' :: CommandList -> InputT IO String
 readLine' comml = readLine ([], []) comml []
 
-readLine :: (String, String) -> CommandList -> CommandList -> IO String
+readLine :: (String, String) -> CommandList -> CommandList -> InputT IO String
 readLine (left, right) comml1 comml2 = do
   currChar <- getChar
   case currChar of
@@ -433,13 +438,13 @@ readLine (left, right) comml1 comml2 = do
             lenLeft = length left
             lenRight = length right
         if right == ""
-          then putStr $ "\ESC[1D \ESC[1D" ++ replicate lenRight ' '
+          then liftIO $ putStr $ "\ESC[1D \ESC[1D" ++ replicate lenRight ' '
           else do
-            putStr "\r"
-            putStr $ "lctict> " ++ replicate (lenLeft + lenRight) ' '
-            putStr "\r"
-            putStr $ "lctict> " ++ left' ++ right
-            putStr $ "\ESC[" ++ show (length "lctict> " + lenLeft) ++ "G"
+            liftIO $ putStr "\r"
+            liftIO $ putStr $ "lctict> " ++ replicate (lenLeft + lenRight) ' '
+            liftIO $ putStr "\r"
+            liftIO $ putStr $ "lctict> " ++ left' ++ right
+            liftIO $ putStr $ "\ESC[" ++ show (length "lctict> " + lenLeft) ++ "G"
         readLine (left', right) comml1 comml2
       [] -> readLine (left, right) comml1 comml2
     '\ESC' -> do
@@ -449,7 +454,7 @@ readLine (left, right) comml1 comml2 = do
         'D' ->
           case reverse left of
             (l : ls) -> do
-              putStr "\ESC[1D"
+              liftIO $ putStr "\ESC[1D"
               readLine (reverse ls, l : right) comml1 comml2
             [] -> readLine (left, right) comml1 comml2
         'C' ->
@@ -461,37 +466,45 @@ readLine (left, right) comml1 comml2 = do
         'A' -> do
           case comml1 of
             (c : cs) -> do
-              putStr "\r"
-              putStr $ "lctict> " ++ replicate (length (left ++ right)) ' '
-              putStr "\r"
-              putStr $ "lctict> " ++ c
+              liftIO $ putStr "\r"
+              liftIO $ putStr $ "lctict> " ++ replicate (length (left ++ right)) ' '
+              liftIO $ putStr "\r"
+              liftIO $ putStr $ "lctict> " ++ c
               readLine (c, []) cs ((left ++ right) : comml2)
             [] -> readLine (left, right) comml1 comml2
         'B' -> do
           case comml2 of
             (c : cs) -> do
-              putStr "\r"
-              putStr $ "lctict> " ++ replicate (length (left ++ right)) ' '
-              putStr "\r"
-              putStr $ "lctict> " ++ c
+              liftIO $ putStr "\r"
+              liftIO $ putStr $ "lctict> " ++ replicate (length (left ++ right)) ' '
+              liftIO $ putStr "\r"
+              liftIO $ putStr $ "lctict> " ++ c
               readLine (c, []) ((left ++ right) : comml1) cs
             [] -> readLine (left, right) comml1 comml2
         key | key /= '\^C' -> readLine (left, right) comml1 comml2
     _ -> do
-      putStr (currChar : right)
-      putStr $ replicate (length right) '\b'
+      liftIO $ putStr (currChar : right)
+      liftIO $ putStr $ replicate (length right) '\b'
       readLine (left ++ [currChar], right) comml1 comml2
 
-getTxtFromFile :: FilePath -> IO String
+--}
+
+getTxtFromFile :: FilePath -> InputT IO String
 getTxtFromFile file = do
-  txt <- readFile file
+  txt <- liftIO $ readFile file
   return txt
 
 getTxtFromInput :: IO String
 getTxtFromInput = do
+  hSetBuffering stdin NoBuffering
+  hSetBuffering stdout NoBuffering
+  hSetEcho stdin False
   putStrLn "Press Ctrl-D to submit the program"
   txt <- readUntil' '\4'
   putStrLn ""
+  hSetBuffering stdin LineBuffering
+  hSetBuffering stdout LineBuffering
+  hSetEcho stdin True
   return txt
 
 updateNextLines :: [String] -> Int -> IO ()
@@ -636,10 +649,10 @@ readUntil finalChar (left, right) prevLines nextLines currH maxH = do
     getHead = \ls -> case ls of [] -> []; (x : xs) -> x
     getTail = \ls -> case ls of [] -> []; (x : xs) -> xs
 
-getTokens :: String -> IO [Token]
+getTokens :: String -> InputT IO [Token]
 getTokens txt = return $ alexScanTokens txt
 
-getAST :: String -> IO (Either String TermNode)
+getAST :: String -> InputT IO (Either String TermNode)
 getAST txt = do
   tok <- getTokens txt
   let tokErr = filter (\x -> case x of Token _ (ERROR e) -> True; _ -> False) tok
@@ -647,134 +660,134 @@ getAST txt = do
     (x : xs) -> return $ Left $ (\(Token fi (ERROR e)) -> e ++ showFileInfo fi) $ x
     [] -> return $ parser tok
 
-getTermFromAST :: String -> IO (Either String TermNode)
+getTermFromAST :: String -> InputT IO (Either String TermNode)
 getTermFromAST txt = do
   ast <- getAST txt
   case ast of
     Left e -> do
-      setSGR [SetColor Foreground Vivid Red]
-      putStrLn e
-      setSGR [Reset]
+      liftIO $ setSGR [SetColor Foreground Vivid Red]
+      liftIO $ putStrLn e
+      liftIO $ setSGR [Reset]
       return $ Left ""
     Right ast' ->
       let ast'' = genIndex' ast'
        in case findTermErrors' ast'' of
             [] -> return $ Right ast''
             es -> do
-              setSGR [SetColor Foreground Vivid Red]
-              putStrLn es
-              setSGR [Reset]
+              liftIO $ setSGR [SetColor Foreground Vivid Red]
+              liftIO $ putStrLn es
+              liftIO $ setSGR [Reset]
               return $ Left ""
 
-getMultipleASTsFromTerms :: [(String, String)] -> IO [(String, TermNode)]
+getMultipleASTsFromTerms :: [(String, String)] -> InputT IO [(String, TermNode)]
 getMultipleASTsFromTerms [] = return []
 getMultipleASTsFromTerms (x : xs) = do
   term <- getTermFromAST $ snd x
   next <- getMultipleASTsFromTerms xs
   case term of
     Left e -> do
-      putStr "for environment variable: "
-      setSGR [SetColor Foreground Vivid Red]
-      putStrLn $ fst x
-      setSGR [Reset]
+      liftIO $ putStr "for environment variable: "
+      liftIO $ setSGR [SetColor Foreground Vivid Red]
+      liftIO $ putStrLn $ fst x
+      liftIO $ setSGR [Reset]
       return next
     Right term' -> return ((fst x, term') : next)
 
-printEval :: TermNode -> IO TermNode
+printEval :: TermNode -> InputT IO TermNode
 printEval ast = do
   ast' <-
     if isVal ast
       then do
-        putStrLn "The given term is already a value"
+        liftIO $ putStrLn "The given term is already a value"
         return ast
       else do
         let ast' = eval' ast
             errs = findTermErrors' $ snd ast'
         if errs /= []
           then do
-            putStrLn errs
-            setSGR [SetColor Foreground Vivid Red]
-            putStrLn "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
-            setSGR [Reset]
+            liftIO $ putStrLn errs
+            liftIO $ setSGR [SetColor Foreground Vivid Red]
+            liftIO $ putStrLn "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
+            liftIO $ setSGR [Reset]
             return $ TermNode noPos $ TmError ""
           else do
-            setSGR [SetColor Foreground Vivid Green]
-            putStrLn $ "The given term evaluated a total of " ++ (show $ fst ast') ++ " times: "
-            setSGR [Reset]
+            liftIO $ setSGR [SetColor Foreground Vivid Green]
+            liftIO $ putStrLn $ "The given term evaluated a total of " ++ (show $ fst ast') ++ " times: "
+            liftIO $ setSGR [Reset]
             printTerm $ snd ast'
             return $ snd ast'
   return $ ast'
 
-printEvalN :: Counter -> TermNode -> IO TermNode
+printEvalN :: Counter -> TermNode -> InputT IO TermNode
 printEvalN n ast = do
   ast' <-
     if isVal ast
       then do
-        putStrLn "The given term is already a value"
+        liftIO $ putStrLn "The given term is already a value"
         return ast
       else do
         let ast' = evalN n ast
             errs = findTermErrors' $ snd ast'
         if errs /= []
           then do
-            putStrLn errs
-            setSGR [SetColor Foreground Vivid Red]
-            putStrLn "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
-            setSGR [Reset]
+            liftIO $ putStrLn errs
+            liftIO $ setSGR [SetColor Foreground Vivid Red]
+            liftIO $ putStrLn "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
+            liftIO $ setSGR [Reset]
             return $ TermNode noPos $ TmError ""
           else do
-            setSGR [SetColor Foreground Vivid Green]
-            putStrLn $ "The given term evaluated a total of " ++ (show $ (n - fst ast')) ++ " times: "
-            setSGR [Reset]
+            liftIO $ setSGR [SetColor Foreground Vivid Green]
+            liftIO $ putStrLn $ "The given term evaluated a total of " ++ (show $ (n - fst ast')) ++ " times: "
+            liftIO $ setSGR [Reset]
             printTerm $ snd ast'
             return $ snd ast'
   return $ ast'
 
-printType :: TermNode -> IO (Either String String)
+printType :: TermNode -> InputT IO (Either String String)
 printType ast = do
   let ty = infer' ast
       errs = findTypeErrors' ty
   if errs /= []
     then do
-      putStrLn errs
-      setSGR [SetColor Foreground Vivid Red]
-      putStrLn "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
-      setSGR [Reset]
+      liftIO $ putStrLn errs
+      liftIO $ setSGR [SetColor Foreground Vivid Red]
+      liftIO $ putStrLn "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
+      liftIO $ setSGR [Reset]
       return $ Left ""
     else do
-      setSGR [SetColor Foreground Vivid Green]
-      putStrLn "The term was typed"
-      setSGR [Reset]
-      setSGR [SetColor Foreground Vivid Blue]
-      putStrLn "Its type:"
-      setSGR [Reset]
+      liftIO $ setSGR [SetColor Foreground Vivid Green]
+      liftIO $ putStrLn "The term was typed"
+      liftIO $ setSGR [Reset]
+      liftIO $ setSGR [SetColor Foreground Vivid Blue]
+      liftIO $ putStrLn "Its type:"
+      liftIO $ setSGR [Reset]
       printTypeDisplay ty
       return $ Right ""
 
-printTerm :: TermNode -> IO (Either String String)
+printTerm :: TermNode -> InputT IO (Either String String)
 printTerm t = do
   let display = findDisplayErrors' $ showTerm' t
   case display of
     Left e -> do
-      putStrLn e
-      setSGR [SetColor Foreground Vivid Red]
-      putStrLn "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
-      setSGR [Reset]
+      liftIO $ putStrLn e
+      liftIO $ setSGR [SetColor Foreground Vivid Red]
+      liftIO $ putStrLn "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
+      liftIO $ setSGR [Reset]
       return $ Left ""
     Right s -> do
-      putStrLn s
+      liftIO $ putStrLn s
       return $ Right ""
 
-printTypeDisplay :: Type -> IO (Either String String)
+printTypeDisplay :: Type -> InputT IO (Either String String)
 printTypeDisplay ty = do
   let display = findDisplayErrors' $ showType' ty
   case display of
     Left e -> do
-      putStrLn e
-      setSGR [SetColor Foreground Vivid Red]
-      putStrLn "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
-      setSGR [Reset]
+      liftIO $ putStrLn e
+      liftIO $ setSGR [SetColor Foreground Vivid Red]
+      liftIO $ putStrLn "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
+      liftIO $ setSGR [Reset]
       return $ Left ""
     Right s -> do
-      putStrLn s
+      liftIO $ putStrLn s
       return $ Right ""
