@@ -21,6 +21,9 @@ $white+                       ;
 ":"                           { \pos _ -> Token pos COLON }
 "("                           { \pos _ -> Token pos LPAREN }
 ")"                           { \pos _ -> Token pos RPAREN }
+"="                           { \pos _ -> Token pos ASSIGN }
+let                           { \pos _ -> Token pos LET }
+in                            { \pos _ -> Token pos IN }
 Int                           { \pos _ -> Token pos TYINT }
 ($digit)+                     { \pos s -> Token pos (TMINT (read s)) }
 ($lower)($digit|$lower)*(\')* { \pos s -> Token pos $ IDLower s }
@@ -43,6 +46,9 @@ data TokenData
   | COLON
   | LPAREN
   | RPAREN
+  | ASSIGN
+  | LET
+  | IN
   | TYINT
   | TMINT Int
   | IDLower String

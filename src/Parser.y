@@ -20,6 +20,9 @@ import Syntax
 ":"     { Token pos COLON }
 "("     { Token pos LPAREN }
 ")"     { Token pos RPAREN }
+"="     { Token pos ASSIGN }
+let     { Token pos LET }
+in      { Token pos IN }
 tyint   { Token pos TYINT }
 tmint   { Token pos (TMINT n) }
 idLower { Token pos (IDLower s) }
@@ -30,6 +33,11 @@ idUpper { Token pos (IDUpper s) }
 Term
   : App { $1 }
   | Abs { $1 }
+  | Let { $1 }
+
+Let
+  : let NameLower "=" Term in Term          { TermNode (tokenPos $1) (TmApp (TermNode (tokenPos $3) (TmAbs (snd $2) $6)) $4) }
+  | let NameLower ":" Type "=" Term in Term { TermNode (tokenPos $1) (TmApp (TermNode (tokenPos $5) (TmAbsAnno (snd $2) $4 $8)) (TermNode (tokenPos $3) (TmAnno $6 $4))) }
 
 Abs
   : "λ" ManyLowerAbs { $2 }
