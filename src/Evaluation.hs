@@ -8,6 +8,10 @@ eval1 :: TermNode -> TermNode
 eval1 t =
   TermNode (getFI t) $
     case getTm t of
+      TmApp (TermNode fi1 (TmAnno (TermNode _ (TmTyAbs _ t1)) (TyForAll _ ty1))) (TermNode fi2 (TmInt n)) ->
+        TmApp (TermNode fi1 (TmAnno t1 (typingEvalSubst TyInt ty1))) (TermNode fi2 (TmInt n))
+      TmApp (TermNode fi1 (TmAnno (TermNode _ (TmTyAbs _ t1)) (TyForAll _ ty1))) (TermNode fi2 (TmAnno t2 ty2)) ->
+        TmApp (TermNode fi1 (TmAnno t1 (typingEvalSubst ty2 ty1))) (TermNode fi2 (TmAnno t2 ty2))
       TmApp (TermNode _ (TmAnno (TermNode fi1 (TmAnno t11 ty1)) _)) t2 -> TmApp (TermNode fi1 (TmAnno t11 ty1)) t2
       TmApp (TermNode _ (TmAbs _ t11)) v2
         | isVal v2 ->
