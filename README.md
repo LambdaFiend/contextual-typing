@@ -1,6 +1,6 @@
 # LCTICT
 
-**Local** **C**ontextual **T**ype **I**nference **C**ontextual **T**yping.
+**L**ocal **C**ontextual **T**ype **I**nference **C**ontextual **T**yping.
 
 ## An informal introduction
 
