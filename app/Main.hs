@@ -68,7 +68,7 @@ getHelp =
         : ":te <page_number>\n"
         : ":ee <page_number>\n"
         : "[Page numbers start at 1]\n"
-        : "[Programs may be executed directly in the command line; CICCT will show, then type and then evaluate it]\n"
+        : "[Programs may be executed directly in the command line; LCTICT will show, then type and then evaluate it]\n"
         : "<program>"
         : []
 
@@ -84,7 +84,7 @@ main = do
 
 main' :: Environment -> CommandList -> IO ()
 main' env comml = do
-  putStr "cicct> "
+  putStr "lctict> "
   command <- readLine' comml
   putStrLn ""
   let commToks = (\comm -> case comm of (x : xs) -> map toLower x : xs; [] -> []) $ words command
@@ -169,7 +169,7 @@ main' env comml = do
       return env
     [quit] | elem quit [":q", ":quit"] -> do
       setSGR [SetColor Foreground Vivid Yellow]
-      putStrLn "Leaving cicct."
+      putStrLn "Leaving lctict."
       setSGR [Reset]
       return [("", TermNode noPos (TmError "Quit."))]
     [move, name1, name2] | elem move [":move", ":mv", ":m"] -> do
@@ -435,10 +435,10 @@ readLine (left, right) comml1 comml2 = do
           then putStr $ "\ESC[1D \ESC[1D" ++ replicate lenRight ' '
           else do
             putStr "\r"
-            putStr $ "cicct> " ++ replicate (lenLeft + lenRight) ' '
+            putStr $ "lctict> " ++ replicate (lenLeft + lenRight) ' '
             putStr "\r"
-            putStr $ "cicct> " ++ left' ++ right
-            putStr $ "\ESC[" ++ show (length "cicct> " + lenLeft) ++ "G"
+            putStr $ "lctict> " ++ left' ++ right
+            putStr $ "\ESC[" ++ show (length "lctict> " + lenLeft) ++ "G"
         readLine (left', right) comml1 comml2
       [] -> readLine (left, right) comml1 comml2
     '\ESC' -> do
@@ -461,18 +461,18 @@ readLine (left, right) comml1 comml2 = do
           case comml1 of
             (c : cs) -> do
               putStr "\r"
-              putStr $ "cicct> " ++ replicate (length (left ++ right)) ' '
+              putStr $ "lctict> " ++ replicate (length (left ++ right)) ' '
               putStr "\r"
-              putStr $ "cicct> " ++ c
+              putStr $ "lctict> " ++ c
               readLine (c, []) cs ((left ++ right) : comml2)
             [] -> readLine (left, right) comml1 comml2
         'B' -> do
           case comml2 of
             (c : cs) -> do
               putStr "\r"
-              putStr $ "cicct> " ++ replicate (length (left ++ right)) ' '
+              putStr $ "lctict> " ++ replicate (length (left ++ right)) ' '
               putStr "\r"
-              putStr $ "cicct> " ++ c
+              putStr $ "lctict> " ++ c
               readLine (c, []) ((left ++ right) : comml1) cs
             [] -> readLine (left, right) comml1 comml2
         key | key /= '\^C' -> readLine (left, right) comml1 comml2
