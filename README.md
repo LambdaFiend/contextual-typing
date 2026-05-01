@@ -28,8 +28,6 @@ Check the referenced article, the example inputs from ```programs/default_tests.
 
 ## Syntax and Semantics
 
-Regarding the Typing for each syntax construct, I might add it later on. This system is far more complex than that of VSBDT, which means I can't simply describe the typing of each contruct using a small table. I will have to think this through first.
-
 | Terms | Meaning |
 | :----: | :------ |
 | i | The integer, a number, of type Int |
