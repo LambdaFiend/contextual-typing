@@ -13,7 +13,7 @@ $alpha = [a-zA-Z]
 tokens :-
 
 $white+                       ;
-(\\|"λ"|"Λ")                  { \pos _ -> Token pos LAMBDA }
+(\\|"λ"|"Λ"|lambda|Lambda)    { \pos _ -> Token pos LAMBDA }
 ("->"|"→")                    { \pos _ -> Token pos ARROW }
 (All|forall|"∀")              { \pos _ -> Token pos FORALL }
 "@"                           { \pos _ -> Token pos APPLY }
