@@ -1,0 +1,5 @@
+example1 := (\id.id id 1) ((\X.\x.x) : forall X.X -> X)
+
+example2 := (\id.id @Int 1) ((\X.\x.x) : forall X.X -> X)
+
+example3 := (\id.id @(forall Y.Y->Y)) ((\X.\x.x) : forall X.X -> X)
