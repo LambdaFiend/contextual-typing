@@ -42,15 +42,13 @@ showType ctx ty =
       let ctxLength = length ctx
        in if l == ctxLength
             then getNameFromContext ctx k x
-            else tyVarErr l ctxLength
+            else "#TyVar: bad context length: " ++ show l ++ "/=" ++ show ctxLength ++ "#"
     TyVarRaw x -> "#" ++ "Raw type variable found in display: " ++ x ++ "#"
     TyForAll x ty1 ->
       let x' = fixName ctx x
        in "(" ++ "∀" ++ x' ++ "." ++ showType (x' : ctx) ty1 ++ ")"
     TyArrow ty1 ty2 -> "(" ++ showType ctx ty1 ++ " → " ++ showType ctx ty2 ++ ")"
     TyError e -> e
-  where
-    tyVarErr l ctxLength = "#TyVar: bad context length: " ++ show l ++ "/=" ++ show ctxLength ++ "#"
 
 showFileInfo :: FileInfo -> String
 showFileInfo (AlexPn p l c) =
@@ -106,7 +104,9 @@ showSurroundingContext :: NameContext -> SurroundingContext -> String
 showSurroundingContext nctx sctx = showStringList (map (showSurroundingInfo nctx) sctx)
 
 showTypingEnvironment :: NameContext -> TypingEnvironment -> String
-showTypingEnvironment nctx ctx = showStringList (map (showTyEnvBinding nctx) ctx)
+showTypingEnvironment nctx ctx = showStringList (map (\(nctx'', ctx') -> showTyEnvBinding nctx'' ctx') (zip nctx' ctx))
+  where
+    nctx' = [drop k x | (x, k) <- zip (take (length ctx) (repeat nctx)) [0 ..]]
 
 showTyEnvBinding :: NameContext -> TyEnvBinding -> String
 showTyEnvBinding ctx b =
