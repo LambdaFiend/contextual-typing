@@ -79,6 +79,7 @@ main = do
   hSetEcho stdin False
   comml <- handleCommHistFile "command_history.txt"
   evaluate (length comml)
+  putStrLn "Welcome to Local Contextual Type Inference Contextual Typing, LCTICT for short!"
   putStrLn "Enter :? for help with commands"
   main' [] $ reverse $ lines comml
 
