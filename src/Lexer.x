@@ -13,25 +13,19 @@ $alpha = [a-zA-Z]
 tokens :-
 
 $white+                       ;
-(\\)|"λ"                      { \pos _ -> Token pos LAMBDA }
-"Int"                         { \pos _ -> Token pos TYINT }
-"Float"                       { \pos _ -> Token pos TYFLOAT }
-"Top"                         { \pos _ -> Token pos TYTOP }
-"="                           { \pos _ -> Token pos ASSIGN }
-"&"                           { \pos _ -> Token pos ANDSYM }
-"+"                           { \pos _ -> Token pos PLUS }
-","                           { \pos _ -> Token pos COMMA }
+(\\|"λ"|"Λ")                  { \pos _ -> Token pos LAMBDA }
+("->"|"→")                    { \pos _ -> Token pos ARROW }
+(All|forall|"∀")              { \pos _ -> Token pos FORALL }
+"@"                           { \pos _ -> Token pos APPLY }
+"."                           { \pos _ -> Token pos DOT }
 ":"                           { \pos _ -> Token pos COLON }
 "("                           { \pos _ -> Token pos LPAREN }
 ")"                           { \pos _ -> Token pos RPAREN }
-"{"                           { \pos _ -> Token pos LBRACK }
-"}"                           { \pos _ -> Token pos RBRACK }
-"->"|"→"                      { \pos _ -> Token pos ARROW }
-($digit)+(".")($digit)+       { \pos s -> Token pos (TMFLOAT (read s)) }
+Int                           { \pos _ -> Token pos TYINT }
 ($digit)+                     { \pos s -> Token pos (TMINT (read s)) }
-($lower)($digit|$alpha)*(\')* { \pos s -> Token pos (ID s) }
-"."                           { \pos _ -> Token pos DOT }
-.                             { \pos s -> Token pos (ERROR ("Lexing error: " ++ s)) }
+($lower)($digit|$lower)*(\')* { \pos s -> Token pos $ IDLower s }
+($upper)($digit|$lower)*(\')* { \pos s -> Token pos $ IDUpper s }
+.                             { \pos s -> Token pos $ ERROR ("Lexing error: " ++ s) }
 
 {
 data Token = Token
@@ -42,23 +36,17 @@ data Token = Token
 
 data TokenData
   = LAMBDA
-  | TYINT
-  | TYFLOAT
-  | TYTOP
-  | ASSIGN
-  | ANDSYM
-  | PLUS
+  | ARROW
+  | FORALL
+  | APPLY
   | DOT
-  | COMMA
   | COLON
   | LPAREN
   | RPAREN
-  | LBRACK
-  | RBRACK
-  | ARROW
+  | TYINT
   | TMINT Int
-  | TMFLOAT Float
-  | ID String
+  | IDLower String
+  | IDUpper String
   | ERROR String
   deriving (Eq, Show)
 }

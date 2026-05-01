@@ -1,5 +1,6 @@
 module Display where
 
+import           Data.List
 import           Lexer
 import           Syntax
 
@@ -12,8 +13,8 @@ showTerm' t =
 showTerm :: NameContext -> TermNode -> String
 showTerm ctx t =
   case getTm t of
-    TmConst c -> showConst c
-    TmVarRaw x -> "#" ++ "Raw variable found in display: " ++ x ++ showFileInfo (getFI t) ++ "#"
+    TmInt n -> show n
+    TmVarRaw x -> "#" ++ "Raw term variable found in display: " ++ x ++ showFileInfo (getFI t) ++ "#"
     TmVar k l x ->
       let ctxLength = length ctx
        in if l == ctxLength
@@ -23,50 +24,33 @@ showTerm ctx t =
       let x' = fixName ctx x
        in "(" ++ "λ" ++ x' ++ "." ++ showTerm (x' : ctx) t1 ++ ")"
     TmApp t1 t2 -> "(" ++ showTerm ctx t1 ++ " " ++ showTerm ctx t2 ++ ")"
-    TmAnno t1 ty1 -> "(" ++ showTerm ctx t1 ++ " : " ++ showType ty1 ++ ")"
-    TmRec xs ts -> "{" ++ concat (map (\(x, tm) -> x ++ " = " ++ showTerm ctx tm) (zip xs ts)) ++ "}"
-    TmProj t1 x -> showTerm ctx t1 ++ "." ++ x
+    TmTyAbs x t1 ->
+      let x' = fixName ctx x
+       in "(" ++ "Λ" ++ x' ++ "." ++ showTerm (x' : ctx) t1 ++ ")"
+    TmTyApp t1 ty1 -> "(" ++ showTerm ctx t1 ++ " @" ++ showType ctx ty1 ++ ")"
+    TmAnno t1 ty1 -> "(" ++ showTerm ctx t1 ++ " : " ++ showType ctx ty1 ++ ")"
     TmError e -> "#" ++ e ++ "#"
 
-showConst :: ConstInfo -> String
-showConst c =
-  case c of
-    ConstInt n       -> show n
-    ConstFloat u     -> show u
-    ConstPlus        -> "+"
-    ConstPlusInt n   -> "+ⁱ<" ++ show n ++ ">"
-    ConstPlusFloat u -> "+ᶠ<" ++ show u ++ ">"
-
 showType' :: Type -> String
-showType' ty = removeOuterParens (showType ty)
+showType' ty = removeOuterParens $ showType [] ty
 
-showType :: Type -> String
-showType ty =
+showType :: NameContext -> Type -> String
+showType ctx ty =
   case ty of
-    TyInt           -> "Int"
-    TyFloat         -> "Float"
-    TyTop           -> "Top"
-    TyArrow ty1 ty2 -> "(" ++ showType ty1 ++ " → " ++ showType ty2 ++ ")"
-    TyInter ty1 ty2 -> "(" ++ showType ty1 ++ " & " ++ showType ty2 ++ ")"
-    TyRec x ty1     -> "{" ++ x ++ " : " ++ showType ty1 ++ "}"
-    TyError e       -> "#" ++ e ++ "#"
-
-showSurroundingInfo :: NameContext -> SurroundingInfo -> String
-showSurroundingInfo ctx info =
-  case info of
-    SType ty -> showType' ty
-    STerm t  -> showTerm ctx t
-    SLabel x -> x
-
-getNameFromContext :: NameContext -> Index -> Name -> Name
-getNameFromContext ctx ind x
-  | ind >= 0 && ind < length ctx = ctx !! ind
-  | otherwise = x -- "#TmVar: no name context for var#"
-
-fixName :: NameContext -> Name -> Name
-fixName ctx x
-  | (length $ filter ((==) x) ctx) < 1 = x
-  | otherwise = fixName ctx (x ++ "\'")
+    TyInt -> "Int"
+    TyVar k l x ->
+      let ctxLength = length ctx
+       in if l == ctxLength
+            then getNameFromContext ctx k x
+            else tyVarErr l ctxLength
+    TyVarRaw x -> "#" ++ "Raw type variable found in display: " ++ x ++ "#"
+    TyForAll x ty1 ->
+      let x' = fixName ctx x
+       in "(" ++ "∀" ++ x' ++ "." ++ showType (x' : ctx) ty1 ++ ")"
+    TyArrow ty1 ty2 -> "(" ++ showType ctx ty1 ++ " → " ++ showType ctx ty2 ++ ")"
+    TyError e -> e
+  where
+    tyVarErr l ctxLength = "#TyVar: bad context length: " ++ show l ++ "/=" ++ show ctxLength ++ "#"
 
 showFileInfo :: FileInfo -> String
 showFileInfo (AlexPn p l c) =
@@ -80,6 +64,8 @@ showFileInfo (AlexPn p l c) =
     ++ "Column: "
     ++ show c
 
+-- Display helper functions below this line
+
 removeOuterParens :: String -> String
 removeOuterParens xs
   | length xs >= 2 =
@@ -92,6 +78,16 @@ removeOuterParens xs
     getHead = (\ws -> case ws of (y : _) -> y; _ -> '\0')
     getTail = (\ws -> case ws of (_ : ys) -> ys; _ -> [])
 
+fixName :: NameContext -> Name -> Name
+fixName ctx x
+  | (length $ filter ((==) x) ctx) < 1 = x
+  | otherwise = fixName ctx (x ++ "\'")
+
+getNameFromContext :: NameContext -> Index -> Name -> Name
+getNameFromContext ctx ind x
+  | ind >= 0 && ind < length ctx = ctx !! ind
+  | otherwise = x -- "#TmVar: no name context for var#"
+
 showStringList :: [String] -> String
 showStringList xs = "[" ++ showStringList' xs ++ "]"
   where
@@ -99,3 +95,35 @@ showStringList xs = "[" ++ showStringList' xs ++ "]"
     showStringList' []        = ""
     showStringList' [x]       = x
     showStringList' (x : xs') = x ++ ", " ++ showStringList' xs'
+
+showSurroundingInfo :: NameContext -> SurroundingInfo -> String
+showSurroundingInfo ctx info =
+  case info of
+    SType ty -> showType ctx ty
+    STerm t  -> showTerm ctx t
+
+showSurroundingContext :: NameContext -> SurroundingContext -> String
+showSurroundingContext nctx sctx = showStringList (map (showSurroundingInfo nctx) sctx)
+
+showTypingEnvironment :: NameContext -> TypingEnvironment -> String
+showTypingEnvironment nctx ctx = showStringList (map (showTyEnvBinding nctx) ctx)
+
+showTyEnvBinding :: NameContext -> TyEnvBinding -> String
+showTyEnvBinding ctx b =
+  case b of
+    TmVarBind x ty -> x ++ " : " ++ showType ctx ty
+    TyVarBind x    -> x
+
+showSubtypingEnvironment :: NameContext -> SubtypingEnvironment -> String
+showSubtypingEnvironment nctx ctx = showStringList (map (showSubTyEnvBinding nctx) ctx)
+
+showSubTyEnvBinding :: NameContext -> SubTyEnvBinding -> String
+showSubTyEnvBinding ctx b =
+  case b of
+    UniversalTyVar x -> x
+    SolvedTyVar x ty -> x ++ " = " ++ showType ctx ty
+    UnsolvedTyVar x  -> x
+
+showPolarity :: Polarity -> String
+showPolarity PositivePolarity = "+"
+showPolarity NegativePolarity = "-"

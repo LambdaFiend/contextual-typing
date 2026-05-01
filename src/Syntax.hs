@@ -12,12 +12,31 @@ type NameContext = [Name]
 
 type TypeContext = [(Name, Type)]
 
+type SubtypingEnvironment = [SubTyEnvBinding]
+
+data SubTyEnvBinding
+  = UniversalTyVar {getNameSubTy :: Name}
+  | UnsolvedTyVar {getNameSubTy :: Name}
+  | SolvedTyVar {getNameSubTy :: Name, getTypeSubTy :: Type}
+  deriving (Eq, Show)
+
+type TypingEnvironment = [TyEnvBinding]
+
+data TyEnvBinding
+  = TmVarBind {getNameTy :: Name, getTypeTy :: Type}
+  | TyVarBind {getNameTy :: Name}
+  deriving (Eq, Show)
+
 type SurroundingContext = [SurroundingInfo]
 
 data SurroundingInfo
   = SType Type
   | STerm TermNode
-  | SLabel Name
+  deriving (Eq, Show)
+
+data Polarity
+  = PositivePolarity
+  | NegativePolarity
   deriving (Eq, Show)
 
 data TermNode = TermNode
@@ -26,55 +45,43 @@ data TermNode = TermNode
   }
   deriving (Eq, Show)
 
-data ConstInfo
-  = ConstInt Int
-  | ConstFloat Float
-  | ConstPlus
-  | ConstPlusInt Int
-  | ConstPlusFloat Float
-  deriving (Eq, Show)
-
 data Term
-  = TmConst ConstInfo
+  = TmInt Int
   | TmVarRaw Name
   | TmVar Index Index Name
   | TmAbs Name TermNode
   | TmApp TermNode TermNode
+  | TmTyAbs Name TermNode
+  | TmTyApp TermNode Type
   | TmAnno TermNode Type
-  | TmRec [Name] [TermNode]
-  | TmProj TermNode Name
   | TmError String
   deriving (Eq, Show)
 
 data Type
   = TyInt
-  | TyFloat
-  | TyTop
+  | TyVarRaw Name
+  | TyVar Index Index Name
   | TyArrow Type Type
-  | TyInter Type Type
-  | TyRec Name Type
+  | TyForAll Name Type
   | TyError String
   deriving (Eq, Show)
-
-noPos :: FileInfo
-noPos = AlexPn (-1) (-1) (-1)
 
 fromMaybe :: Maybe a -> a
 fromMaybe (Just x) = x
 fromMaybe Nothing  = error "fromMaybe, in Syntax.hs"
 
+noPos :: FileInfo
+noPos = AlexPn (-1) (-1) (-1)
+
 isGenericConsumer :: TermNode -> Bool
 isGenericConsumer t =
   case getTm t of
-    TmConst _   -> True
+    TmInt _     -> True
     TmVar _ _ _ -> True
     TmAnno _ _  -> True
-    TmRec _ _   -> True
+    TmTyAbs _ _ -> True
     _           -> False
 
-constToType :: ConstInfo -> Type
-constToType (ConstInt _) = TyInt
-constToType (ConstFloat _) = TyFloat
-constToType ConstPlus = TyInter (TyArrow TyInt (TyArrow TyInt TyInt)) (TyArrow TyFloat (TyArrow TyFloat TyFloat))
-constToType (ConstPlusInt _) = TyArrow TyInt TyInt
-constToType (ConstPlusFloat _) = TyArrow TyFloat TyFloat
+negatePolarity :: Polarity -> Polarity
+negatePolarity PositivePolarity = NegativePolarity
+negatePolarity NegativePolarity = PositivePolarity
