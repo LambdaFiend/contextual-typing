@@ -9,7 +9,7 @@ newtype UpdatedTmArrTm = UpdatedTmArrTm
 traverseDownTm :: (TermNode -> UpdatedTmArrTm) -> TermNode -> TermNode
 traverseDownTm f t = TermNode fi $
   case tm of
-    TmInt _           -> tm
+    TmConst _         -> tm
     TmVar _ _ _       -> tm
     TmVarRaw _        -> tm
     TmAbs x t1        -> TmAbs x (traverseTm' t1)
@@ -28,7 +28,7 @@ traverseDownTm f t = TermNode fi $
 isVal :: TermNode -> Bool
 isVal t =
   case getTm t of
-    TmInt _                -> True
+    TmConst _              -> True
     TmAbs _ _              -> True
     TmTyAbs _ _            -> True
     TmAnno t1 _ | isVal t1 -> True
@@ -145,6 +145,7 @@ collectFreeTyVars' :: NameContext -> Type -> [Index]
 collectFreeTyVars' ctx ty =
   case ty of
     TyInt           -> []
+    TyFloat         -> []
     TyVarRaw _      -> []
     TyVar k _ _     -> if k < length ctx then [] else [k - length ctx]
     TyForAll x ty1  -> collectFreeTyVars' (x : ctx) ty1
@@ -175,6 +176,7 @@ substCtxToTy :: SubtypingEnvironment -> Type -> Type
 substCtxToTy ctx ty =
   case ty of
     TyInt -> ty
+    TyFloat -> ty
     TyVarRaw _ -> ty
     TyVar k _ x ->
       case findSolution ctx x k of
@@ -183,6 +185,16 @@ substCtxToTy ctx ty =
     TyForAll x ty1 -> TyForAll x (substCtxToTy (UniversalTyVar x : ctx) ty1)
     TyArrow ty1 ty2 -> TyArrow (substCtxToTy ctx ty1) (substCtxToTy ctx ty2)
     TyError _ -> ty
+
+constToType :: ConstInfo -> Type
+constToType c =
+  case c of
+    ConstInt _       -> TyInt
+    ConstFloat _     -> TyFloat
+    ConstPlusI       -> TyArrow TyInt (TyArrow TyInt TyInt)
+    ConstPlusF       -> TyArrow TyFloat (TyArrow TyFloat TyFloat)
+    ConstPlusInt _   -> TyArrow TyInt TyInt
+    ConstPlusFloat _ -> TyArrow TyFloat TyFloat
 
 id' :: TermNode -> UpdatedTmArrTm
 id' t = UpdatedTmArrTm (t, id', id', id :: Type -> Type)
@@ -208,6 +220,7 @@ findTypeErrors :: Type -> [String]
 findTypeErrors t =
   case t of
     TyInt           -> []
+    TyFloat         -> []
     TyVar _ _ _     -> []
     TyVarRaw x      -> ["Found TyVarRaw: " ++ x]
     TyForAll _ ty   -> findTypeErrors ty
@@ -220,7 +233,7 @@ findTermErrors' t = intercalate "\n" $ findTermErrors t
 findTermErrors :: TermNode -> [String]
 findTermErrors t =
   case getTm t of
-    TmInt _            -> []
+    TmConst _          -> []
     TmVar _ _ _        -> []
     TmVarRaw x         -> ["Found TmVarRaw: " ++ x]
     TmAbs _ t1         -> findTermErrors t1

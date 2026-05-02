@@ -13,7 +13,7 @@ showTerm' t =
 showTerm :: NameContext -> TermNode -> String
 showTerm ctx t =
   case getTm t of
-    TmInt n -> show n
+    TmConst c -> showConst c
     TmVarRaw x -> "#" ++ "Raw term variable found in display: " ++ x ++ showFileInfo (getFI t) ++ "#"
     TmVar k l x ->
       let ctxLength = length ctx
@@ -34,6 +34,16 @@ showTerm ctx t =
        in "(" ++ "λ" ++ x' ++ ": " ++ showType ctx ty1 ++ "." ++ showTerm (x' : ctx) t1 ++ ")"
     TmError e -> "#" ++ e ++ "#"
 
+showConst :: ConstInfo -> String
+showConst c =
+  case c of
+    ConstInt n       -> show n
+    ConstFloat u     -> show u
+    ConstPlusI       -> "+ⁱ"
+    ConstPlusF       -> "+ᶠ"
+    ConstPlusInt n   -> "+ⁱ<" ++ show n ++ ">"
+    ConstPlusFloat u -> "+ᶠ<" ++ show u ++ ">"
+
 showType' :: Type -> String
 showType' ty = removeOuterParens $ showType [] ty
 
@@ -41,6 +51,7 @@ showType :: NameContext -> Type -> String
 showType ctx ty =
   case ty of
     TyInt -> "Int"
+    TyFloat -> "Float"
     TyVar k l x ->
       let ctxLength = length ctx
        in if l == ctxLength

@@ -17,17 +17,21 @@ $white+                       ;
 ("->"|"→")                    { \pos _ -> Token pos ARROW }
 (All|forall|"∀")              { \pos _ -> Token pos FORALL }
 "@"                           { \pos _ -> Token pos APPLY }
-"."                           { \pos _ -> Token pos DOT }
 ":"                           { \pos _ -> Token pos COLON }
 "("                           { \pos _ -> Token pos LPAREN }
 ")"                           { \pos _ -> Token pos RPAREN }
 "="                           { \pos _ -> Token pos ASSIGN }
+"+F"                          { \pos _ -> Token pos PLUSFLOAT }
+"+I"                          { \pos _ -> Token pos PLUSINT }
 let                           { \pos _ -> Token pos LET }
 in                            { \pos _ -> Token pos IN }
+Float                         { \pos _ -> Token pos TYFLOAT }
 Int                           { \pos _ -> Token pos TYINT }
+($digit)+(".")($digit)+       { \pos s -> Token pos (TMFLOAT (read s)) }
 ($digit)+                     { \pos s -> Token pos (TMINT (read s)) }
 ($lower)($digit|$lower)*(\')* { \pos s -> Token pos $ IDLower s }
 ($upper)($digit|$lower)*(\')* { \pos s -> Token pos $ IDUpper s }
+"."                           { \pos _ -> Token pos DOT }
 .                             { \pos s -> Token pos $ ERROR ("Lexing error: " ++ s) }
 
 {
@@ -47,9 +51,13 @@ data TokenData
   | LPAREN
   | RPAREN
   | ASSIGN
+  | PLUSFLOAT
+  | PLUSINT
   | LET
   | IN
+  | TYFLOAT
   | TYINT
+  | TMFLOAT Float
   | TMINT Int
   | IDLower String
   | IDUpper String

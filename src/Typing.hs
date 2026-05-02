@@ -11,7 +11,7 @@ infer' t = infer [] [] t
 infer :: TypingEnvironment -> SurroundingContext -> TermNode -> Type
 infer tctx sctx t =
   case (sctx, getTm t) of
-    ([], TmInt _) -> TyInt
+    ([], TmConst c) -> constToType c
     ([], TmVar k _ x)
       | k < length tctx ->
           case tctx !? k of
@@ -176,6 +176,7 @@ subtypeCheck :: TypingEnvironment -> SubtypingEnvironment -> Type -> Polarity ->
 subtypeCheck tctx stctx ty1 pol ty2 =
   case (ty1, pol, ty2) of
     (TyInt, _, TyInt) -> (Just stctx, Nothing)
+    (TyFloat, _, TyFloat) -> (Just stctx, Nothing)
     (TyVar k1 _ x1, _, TyVar k2 _ x2)
       | x1 == x2 && k1 == k2 ->
           if ((k1 < length tctx && elem x1 ntctx) || (k1 < length stctx && elem x1 nstctx))

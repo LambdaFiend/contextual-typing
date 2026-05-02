@@ -39,6 +39,15 @@ data Polarity
   | NegativePolarity
   deriving (Eq, Show)
 
+data ConstInfo
+  = ConstInt Int
+  | ConstFloat Float
+  | ConstPlusI
+  | ConstPlusF
+  | ConstPlusInt Int
+  | ConstPlusFloat Float
+  deriving (Eq, Show)
+
 data TermNode = TermNode
   { getFI :: FileInfo,
     getTm :: Term
@@ -46,7 +55,7 @@ data TermNode = TermNode
   deriving (Eq, Show)
 
 data Term
-  = TmInt Int
+  = TmConst ConstInfo
   | TmVarRaw Name
   | TmVar Index Index Name
   | TmAbs Name TermNode
@@ -60,6 +69,7 @@ data Term
 
 data Type
   = TyInt
+  | TyFloat
   | TyVarRaw Name
   | TyVar Index Index Name
   | TyArrow Type Type
@@ -77,7 +87,7 @@ noPos = AlexPn (-1) (-1) (-1)
 isGenericConsumer :: TermNode -> Bool
 isGenericConsumer t =
   case getTm t of
-    TmInt _     -> True
+    TmConst _   -> True
     TmVar _ _ _ -> True
     TmAnno _ _  -> True
     TmTyAbs _ _ -> True

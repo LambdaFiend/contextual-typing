@@ -21,9 +21,13 @@ import Syntax
 "("     { Token pos LPAREN }
 ")"     { Token pos RPAREN }
 "="     { Token pos ASSIGN }
+"+F"    { Token pos PLUSFLOAT }
+"+I"    { Token pos PLUSINT }
 let     { Token pos LET }
 in      { Token pos IN }
+tyfloat { Token pos TYFLOAT }
 tyint   { Token pos TYINT }
+tmfloat { Token pos (TMFLOAT u) }
 tmint   { Token pos (TMINT n) }
 idLower { Token pos (IDLower s) }
 idUpper { Token pos (IDUpper s) }
@@ -68,7 +72,10 @@ Atom
 
 Value
   : NameLower { TermNode (fst $1) $ TmVarRaw (snd $1) }
-  | tmint     { TermNode (tokenPos $1) (TmInt ((\(TMINT s) -> s) (tokenDat $1))) }
+  | tmfloat   { TermNode (tokenPos $1) (TmConst (ConstFloat ((\(TMFLOAT s) -> s) (tokenDat $1)))) }
+  | tmint     { TermNode (tokenPos $1) (TmConst (ConstInt ((\(TMINT s) -> s) (tokenDat $1)))) }
+  | "+F"      { TermNode (tokenPos $1) (TmConst ConstPlusF) }
+  | "+I"      { TermNode (tokenPos $1) (TmConst ConstPlusI) }
 
 NameLower : idLower { (tokenPos $1, (\(IDLower s) -> s) $ tokenDat $1) }
 
@@ -90,6 +97,7 @@ TypeArrow
 
 TypeAtom
   : NameUpper    { TyVarRaw (snd $1) }
+  | tyfloat      { TyFloat }
   | tyint        { TyInt }
   | "(" Type ")" { $2 }
 

@@ -8,8 +8,16 @@ eval1 :: TermNode -> TermNode
 eval1 t =
   TermNode (getFI t) $
     case getTm t of
-      TmApp (TermNode fi1 (TmAnno (TermNode _ (TmTyAbs _ t1)) (TyForAll _ ty1))) (TermNode fi2 (TmInt n)) ->
-        TmApp (TermNode fi1 (TmAnno (shift' 0 (-1) t1) (typingEvalSubst TyInt ty1))) (TermNode fi2 (TmInt n))
+      TmApp (TermNode _ (TmAnno (TermNode fi1 (TmConst ConstPlusF)) (TyArrow _ ty2))) (TermNode _ (TmConst (ConstFloat u))) -> TmAnno (TermNode fi1 (TmConst (ConstPlusFloat u))) ty2
+      TmApp (TermNode _ (TmAnno (TermNode fi1 (TmConst (ConstPlusFloat u1))) (TyArrow _ ty2))) (TermNode _ (TmConst (ConstFloat u2))) -> TmAnno (TermNode fi1 (TmConst (ConstFloat (u1 + u2)))) ty2
+      TmApp (TermNode _ (TmConst ConstPlusF)) (TermNode _ (TmConst (ConstFloat u))) -> TmConst (ConstPlusFloat u)
+      TmApp (TermNode _ (TmConst (ConstPlusFloat u1))) (TermNode _ (TmConst (ConstFloat u2))) -> TmConst (ConstFloat (u1 + u2))
+      TmApp (TermNode _ (TmAnno (TermNode fi1 (TmConst ConstPlusI)) (TyArrow _ ty2))) (TermNode _ (TmConst (ConstInt n))) -> TmAnno (TermNode fi1 (TmConst (ConstPlusInt n))) ty2
+      TmApp (TermNode _ (TmAnno (TermNode fi1 (TmConst (ConstPlusInt n1))) (TyArrow _ ty2))) (TermNode _ (TmConst (ConstInt n2))) -> TmAnno (TermNode fi1 (TmConst (ConstInt (n1 + n2)))) ty2
+      TmApp (TermNode _ (TmConst ConstPlusI)) (TermNode _ (TmConst (ConstInt n))) -> TmConst (ConstPlusInt n)
+      TmApp (TermNode _ (TmConst (ConstPlusInt n1))) (TermNode _ (TmConst (ConstInt n2))) -> TmConst (ConstInt (n1 + n2))
+      TmApp (TermNode fi1 (TmAnno (TermNode _ (TmTyAbs _ t1)) (TyForAll _ ty1))) (TermNode fi2 (TmConst (ConstInt n))) ->
+        TmApp (TermNode fi1 (TmAnno (shift' 0 (-1) t1) (typingEvalSubst TyInt ty1))) (TermNode fi2 (TmConst (ConstInt n)))
       TmApp (TermNode fi1 (TmAnno (TermNode _ (TmTyAbs _ t1)) (TyForAll _ ty1))) (TermNode fi2 (TmAnno t2 ty2)) ->
         TmApp (TermNode fi1 (TmAnno (shift' 0 (-1) t1) (typingEvalSubst ty2 ty1))) (TermNode fi2 (TmAnno t2 ty2))
       TmApp (TermNode _ (TmAnno (TermNode fi1 (TmAnno t11 ty1)) _)) t2 -> TmApp (TermNode fi1 (TmAnno t11 ty1)) t2
@@ -45,6 +53,7 @@ eval1 t =
         | not $ isVal t1 ->
             let result = eval1 t1
              in checkError result $ TmAnno result ty
+      TmAnno (TermNode _ (TmConst c)) _ -> TmConst c
       _ -> TmError ("No rule applies" ++ showFileInfo (getFI t))
   where
     checkError :: TermNode -> Term -> Term
