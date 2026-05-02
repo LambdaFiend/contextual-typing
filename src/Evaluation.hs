@@ -16,8 +16,8 @@ eval1 t =
       TmApp (TermNode _ (TmAnno (TermNode fi1 (TmConst (ConstPlusInt n1))) (TyArrow _ ty2))) (TermNode _ (TmConst (ConstInt n2))) -> TmAnno (TermNode fi1 (TmConst (ConstInt (n1 + n2)))) ty2
       TmApp (TermNode _ (TmConst ConstPlusI)) (TermNode _ (TmConst (ConstInt n))) -> TmConst (ConstPlusInt n)
       TmApp (TermNode _ (TmConst (ConstPlusInt n1))) (TermNode _ (TmConst (ConstInt n2))) -> TmConst (ConstInt (n1 + n2))
-      TmApp (TermNode fi1 (TmAnno (TermNode _ (TmTyAbs _ t1)) (TyForAll _ ty1))) (TermNode fi2 (TmConst (ConstInt n))) ->
-        TmApp (TermNode fi1 (TmAnno (shift' 0 (-1) t1) (typingEvalSubst TyInt ty1))) (TermNode fi2 (TmConst (ConstInt n)))
+      TmApp (TermNode fi1 (TmAnno (TermNode _ (TmTyAbs _ t1)) (TyForAll _ ty1))) (TermNode fi2 (TmConst c)) ->
+        TmApp (TermNode fi1 (TmAnno (shift' 0 (-1) t1) (typingEvalSubst (constToType c) ty1))) (TermNode fi2 (TmConst c))
       TmApp (TermNode fi1 (TmAnno (TermNode _ (TmTyAbs _ t1)) (TyForAll _ ty1))) (TermNode fi2 (TmAnno t2 ty2)) ->
         TmApp (TermNode fi1 (TmAnno (shift' 0 (-1) t1) (typingEvalSubst ty2 ty1))) (TermNode fi2 (TmAnno t2 ty2))
       TmApp (TermNode _ (TmAnno (TermNode fi1 (TmAnno t11 ty1)) _)) t2 -> TmApp (TermNode fi1 (TmAnno t11 ty1)) t2
