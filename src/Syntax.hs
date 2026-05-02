@@ -75,7 +75,17 @@ data Type
   | TyArrow Type Type
   | TyForAll Name Type
   | TyError String
-  deriving (Eq, Show)
+  deriving (Show)
+
+instance Eq (Type) where
+  TyInt == TyInt                             = True
+  TyFloat == TyFloat                         = True
+  (TyVarRaw x1) == (TyVarRaw x2)             = x1 == x2
+  (TyVar k1 l1 _) == (TyVar k2 l2 _)         = k1 == k2 && l1 == l2
+  (TyArrow ty11 ty12) == (TyArrow ty21 ty22) = ty11 == ty21 && ty12 == ty22
+  (TyForAll _ ty11) == (TyForAll _ ty21)     = ty11 == ty21
+  (TyError e1) == (TyError e2)               = e1 == e2
+  _ == _                                     = False
 
 fromMaybe :: Maybe a -> a
 fromMaybe (Just x) = x
