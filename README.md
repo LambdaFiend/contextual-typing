@@ -31,6 +31,7 @@ Check the referenced article, the example inputs from ```programs/default_tests.
 | Terms | Meaning |
 | :----: | :------ |
 | i | The integer, a number, of type Int |
+| u | The float, a floating point number, of type Float|
 | x | The term variable, of type<br>depending on the environment,<br>and requires a term abstraction to abstract it |
 | \x.t1 | The term abstraction, of type<br>T -> T1, where T is the<br>type given to x and T1 of t1,<br>and x, the name of the term variable<br>must not be capitalized, for otherwise it<br>becomes a type variable abstraction |
 | \x: T.t1 | The annotated term abstraction, of type<br>T -> T1, where T is the T from<br>the annotated T of \x: T.t1,<br>and x, the name of the term variable<br>must not be capitalized, for otherwise it<br>becomes invalid syntax |
@@ -40,11 +41,15 @@ Check the referenced article, the example inputs from ```programs/default_tests.
 | t1 : T | The annotation of type<br>T, should t1's type T1 match it |
 | let x = t2 in t1 | The let-binding, which in this case is<br>syntactic sugar for ((\x.t1) t2) |
 | let x: T = t2 in t1 | The let-binding, which in this case is<br>syntactic sugar for ((\x: T.t1) t2) |
-
+| +I | The plus operator for integers<br>of type Int -> Int -> Int |
+| +F | The plus operator for floats<br>of type Float -> Float -> Float |
+| +ⁱ<> | The partially applied plus operator for integers<br>of type Int -> Int, which is unachievable<br>without first evaluating |
+| +ᶠ<> | The partially applied plus operator for floats<br>of type Float -> Float, which is unachievable<br>without first evaluating |
 
 | Types | Meaning |
 | :---: | :------ |
 | Int | The integer type, which is for integers i |
+| Float | The float type, which is for floats u |
 | X | The type variable, which requires a<br>type abstraction to abstract it |
 | T1 -> T2 | The arrow type, which is for<br>term abstractions/functions |
 | ∀X.T1 | The for-all type, which is for<br>type abstractions |
