@@ -43,8 +43,8 @@ Check the referenced article, the example inputs from ```programs/default_tests.
 | let x: T = t2 in t1 | The let-binding, which in this case is<br>syntactic sugar for ((\x: T.t1) t2) |
 | +I | The plus operator for integers<br>of type Int -> Int -> Int |
 | +F | The plus operator for floats<br>of type Float -> Float -> Float |
-| +ⁱ<> | The partially applied plus operator for integers<br>of type Int -> Int, which is unachievable<br>without first evaluating |
-| +ᶠ<> | The partially applied plus operator for floats<br>of type Float -> Float, which is unachievable<br>without first evaluating |
+| +ⁱ<i> | The partially applied plus operator for integers<br>of type Int -> Int, which is unachievable<br>without first evaluating |
+| +ᶠ<u> | The partially applied plus operator for floats<br>of type Float -> Float, which is unachievable<br>without first evaluating |
 
 | Types | Meaning |
 | :---: | :------ |
