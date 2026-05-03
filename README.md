@@ -55,6 +55,9 @@ Check the referenced article, the example inputs from ```programs/default_tests.
 | fst t1 | The fst projection, of type T1, where t1 must be<br>of the type (T1, T2) |
 | fst t1 | The snd projection, of type T2, where t1 must be<br>of the type (T1, T2) |
 
+
+The operators are always prefix.
+
 The operators for numeric types (ints and floats) are +, -, * and /. (plus, minus, mult, div)
 
 The division for ints is floor division.
