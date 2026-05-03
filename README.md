@@ -61,7 +61,7 @@ The operators are always prefix.
 
 The operators for numeric types (ints and floats) are +, -, * and /. (plus, minus, mult, div)
 
-The division for ints is floor division.
+The division for ints is floor division. There is no operator overloading, so in order to distinguish between int operators and float operators, a suffix letter must be added as shown in the table: a letter I in front of the operator for making it for integers, and an F letter for making it for floats.
 
 The operators for boolean types (bools) are && and ||. (and, or)
 
