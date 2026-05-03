@@ -46,13 +46,14 @@ showConst c =
   case c of
     ConstInt n        -> show n
     ConstFloat u      -> show u
+    ConstBool b       -> show b
+    ConstUnit         -> "()"
     ConstOpI op       -> showNumOp op ++ "ⁱ"
     ConstOpF op       -> showNumOp op ++ "ᶠ"
     ConstOpInt op n   -> showNumOp op ++ "ⁱ" ++ "<" ++ show n ++ ">"
     ConstOpFloat op u -> showNumOp op ++ "ᶠ" ++ "<" ++ show u ++ ">"
-    ConstBool b       -> show b
-    ConstOpB op       -> showBoolOp op
-    ConstOpBool op b  -> showBoolOp op ++ "<" ++ show b ++ ">"
+    ConstOpB op       -> showBoolOp op ++ "ᵇ"
+    ConstOpBool op b  -> showBoolOp op ++ "ᵇ" ++ "<" ++ show b ++ ">"
     ConstNot          -> "not"
 
 showNumOp :: NumOp -> String
@@ -78,6 +79,7 @@ showType ctx ty =
     TyInt -> "Int"
     TyFloat -> "Float"
     TyBool -> "Bool"
+    TyUnit -> "Unit"
     TyVar k l x ->
       let ctxLength = length ctx
        in if l == ctxLength

@@ -56,13 +56,14 @@ data BoolOp
 data ConstInfo
   = ConstInt Int
   | ConstFloat Float
+  | ConstBool Bool
+  | ConstUnit
   | ConstOpI NumOp
   | ConstOpF NumOp
   | ConstOpInt NumOp Int
   | ConstOpFloat NumOp Float
   | ConstOpB BoolOp
   | ConstOpBool BoolOp Bool
-  | ConstBool Bool
   | ConstNot
   deriving (Eq, Show)
 
@@ -93,6 +94,7 @@ data Type
   = TyInt
   | TyFloat
   | TyBool
+  | TyUnit
   | TyVarRaw Name
   | TyVar Index Index Name
   | TyArrow Type Type
@@ -105,6 +107,7 @@ instance Eq (Type) where
   TyInt == TyInt                                 = True
   TyFloat == TyFloat                             = True
   TyBool == TyBool                               = True
+  TyUnit == TyUnit                               = True
   (TyVarRaw x1) == (TyVarRaw x2)                 = x1 == x2
   (TyVar k1 l1 _) == (TyVar k2 l2 _)             = k1 == k2 && l1 == l2
   (TyArrow ty11 ty12) == (TyArrow ty21 ty22)     = ty11 == ty21 && ty12 == ty22

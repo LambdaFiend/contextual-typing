@@ -159,6 +159,7 @@ collectFreeTyVars' ctx ty =
     TyInt -> []
     TyFloat -> []
     TyBool -> []
+    TyUnit -> []
     TyVarRaw _ -> []
     TyVar k _ _ -> if k < length ctx then [] else [k - length ctx]
     TyForAll x ty1 -> collectFreeTyVars' (x : ctx) ty1
@@ -192,6 +193,7 @@ substCtxToTy ctx ty =
     TyInt -> ty
     TyFloat -> ty
     TyBool -> ty
+    TyUnit -> ty
     TyVarRaw _ -> ty
     TyVar k _ x ->
       case findSolution ctx x k of
@@ -207,13 +209,14 @@ constToType c =
   case c of
     ConstInt _       -> TyInt
     ConstFloat _     -> TyFloat
+    ConstBool _      -> TyBool
+    ConstUnit        -> TyUnit
     ConstOpI _       -> TyArrow TyInt (TyArrow TyInt TyInt)
     ConstOpF _       -> TyArrow TyFloat (TyArrow TyFloat TyFloat)
     ConstOpInt _ _   -> TyArrow TyInt TyInt
     ConstOpFloat _ _ -> TyArrow TyFloat TyFloat
     ConstOpB _       -> TyArrow TyBool (TyArrow TyBool TyBool)
     ConstOpBool _ _  -> TyArrow TyBool TyBool
-    ConstBool _      -> TyBool
     ConstNot         -> TyArrow TyBool TyBool
 
 id' :: TermNode -> UpdatedTmArrTm
@@ -242,6 +245,7 @@ findTypeErrors t =
     TyInt             -> []
     TyFloat           -> []
     TyBool            -> []
+    TyUnit            -> []
     TyVar _ _ _       -> []
     TyVarRaw x        -> ["Found TyVarRaw: " ++ x]
     TyForAll _ ty     -> findTypeErrors ty

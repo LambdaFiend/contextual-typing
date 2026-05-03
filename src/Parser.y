@@ -40,6 +40,7 @@ in      { Token pos IN }
 tyfloat { Token pos TYFLOAT }
 tyint   { Token pos TYINT }
 tybool  { Token pos TYBOOL }
+tyunit  { Token pos TYUNIT }
 true    { Token pos TRUE }
 false   { Token pos FALSE }
 if      { Token pos IF }
@@ -95,7 +96,8 @@ Atom
   | "(" Term ")"          { $2 }
 
 Value
-  : NameLower { TermNode (fst $1) $ TmVarRaw (snd $1) }
+  : NameLower { TermNode (fst $1) (TmVarRaw (snd $1)) }
+  | "(" ")"   { TermNode (tokenPos $1) (TmConst ConstUnit) }
   | tmfloat   { TermNode (tokenPos $1) (TmConst (ConstFloat ((\(TMFLOAT s) -> s) (tokenDat $1)))) }
   | tmint     { TermNode (tokenPos $1) (TmConst (ConstInt ((\(TMINT s) -> s) (tokenDat $1)))) }
   | "+F"      { TermNode (tokenPos $1) (TmConst (ConstOpF PlusOp)) }
@@ -135,6 +137,7 @@ TypeAtom
   | tyfloat               { TyFloat }
   | tyint                 { TyInt }
   | tybool                { TyBool }
+  | tyunit                { TyUnit }
   | "(" Type ")"          { $2 }
   | "(" Type "," Type ")" { TyProduct $2 $4 }
 

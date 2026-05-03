@@ -40,6 +40,7 @@ $white+                        ;
 "Float"                        { \pos _ -> Token pos TYFLOAT }
 "Int"                          { \pos _ -> Token pos TYINT }
 "Bool"                         { \pos _ -> Token pos TYBOOL }
+"Unit"                         { \pos _ -> Token pos TYUNIT }
 "True"                         { \pos _ -> Token pos TRUE }
 "False"                        { \pos _ -> Token pos FALSE }
 "if"                           { \pos _ -> Token pos IF }
@@ -88,6 +89,7 @@ data TokenData
   | TYFLOAT
   | TYINT
   | TYBOOL
+  | TYUNIT
   | TRUE
   | FALSE
   | IF

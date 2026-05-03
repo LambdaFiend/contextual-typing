@@ -236,6 +236,7 @@ subtypeCheck tctx stctx ty1 pol ty2 =
     (TyInt, _, TyInt) -> (Just stctx, Nothing)
     (TyFloat, _, TyFloat) -> (Just stctx, Nothing)
     (TyBool, _, TyBool) -> (Just stctx, Nothing)
+    (TyUnit, _, TyUnit) -> (Just stctx, Nothing)
     (TyVar k1 _ x1, _, TyVar k2 _ x2)
       | x1 == x2 && k1 == k2 ->
           if ((k1 < length tctx && elem x1 ntctx) || (k1 < length stctx && elem x1 nstctx))
