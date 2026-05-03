@@ -1,5 +1,6 @@
 module Display where
 
+import Data.List
 import           Lexer
 import           Syntax
 
@@ -24,7 +25,7 @@ showTerm ctx t =
        in "(" ++ "λ" ++ x' ++ "." ++ showTerm (x' : ctx) t1 ++ ")"
     TmApp t1 t2 -> "(" ++ showTerm ctx t1 ++ " " ++ showTerm ctx t2 ++ ")"
     TmAnno t1 ty1 -> "(" ++ showTerm ctx t1 ++ " : " ++ showType ty1 ++ ")"
-    TmRec xs ts -> "{" ++ concat (map (\(x, tm) -> x ++ " = " ++ showTerm ctx tm) (zip xs ts)) ++ "}"
+    TmRec xs ts -> "{" ++ intercalate ", " (map (\(x, tm) -> x ++ " = " ++ showTerm ctx tm) (zip xs ts)) ++ "}"
     TmProj t1 x -> showTerm ctx t1 ++ "." ++ x
     TmError e -> "#" ++ e ++ "#"
 
