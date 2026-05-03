@@ -73,6 +73,54 @@ infer tctx sctx t =
                 (Just stctx, _) -> TyError ("| infer AT-TApp: subtype infer returned a subtyping environment Δ expected to be empty, but got ≡ " ++ showSubtypingEnvironment nctx stctx)
                 (Nothing, _) -> TyError ("| infer AT-TApp: subtype infer returned a subtyping environment Δ expected to be empty, but got nothing")
         ty2 -> TyError ("| infer AT-TApp: expected to infer, for e ≡ " ++ showTerm nctx t1 ++ ", a for-all type of the form ∀α.B, but got " ++ showType nctx ty2)
+    ([], TmPair t1 t2) ->
+      case infer tctx [] t1 of
+        TyError e -> TyError ("| infer AT-Pair1: failed to infer e1 ≡ " ++ showTerm nctx t1 ++ " assuming the empty surrounding context Σ" ++ "\n" ++ e)
+        ty1 ->
+          case infer tctx [] t2 of
+            TyError e -> TyError ("| infer AT-Pair1: failed to infer e2 ≡ " ++ showTerm nctx t2 ++ " assuming the empty surrounding context Σ" ++ "\n" ++ e)
+            ty2 -> TyProduct ty1 ty2
+    ([SType (TyProduct ty1 ty2)], TmPair t1 t2) ->
+      case infer tctx [SType ty1] t1 of
+        TyError e -> TyError ("| infer AT-Pair2: failed to infer e1 ≡ " ++ showTerm nctx t1 ++ " assuming the type A ≡ " ++ "[" ++ showType nctx ty1 ++ "]" ++ " as the surrounding context Σ" ++ "\n" ++ e)
+        ty1' ->
+          case infer tctx [SType ty2] t2 of
+            TyError e -> TyError ("| infer AT-Pair2: failed to infer e2 ≡ " ++ showTerm nctx t2 ++ " assuming the type B ≡ " ++ "[" ++ showType nctx ty2 ++ "]" ++ " as the surrounding context Σ" ++ "\n" ++ e)
+            ty2' -> TyProduct ty1' ty2'
+    (_, TmFst t1) ->
+      case infer tctx (SFst : sctx) t1 of
+        TyError e -> TyError ("| infer AT-Fst: failed to infer e ≡ " ++ showTerm nctx t1 ++ " assuming fst at the top of the surrounding context Σ ≡ " ++ showSurroundingContext nctx sctx ++ "\n" ++ e)
+        TyProduct ty1 _ -> ty1
+        _ -> TyError ("| infer AT-Fst: expected the product type but got something else from the inferred type of e ≡ " ++ showTerm nctx t1 ++ " assuming fst at the top of the surrounding context Σ ≡ " ++ showSurroundingContext nctx sctx)
+    (_, TmSnd t1) ->
+      case infer tctx (SSnd : sctx) t1 of
+        TyError e -> TyError ("| infer AT-Snd: failed to infer e ≡ " ++ showTerm nctx t1 ++ " assuming snd at the top of the surrounding context Σ ≡ " ++ showSurroundingContext nctx sctx ++ "\n" ++ e)
+        TyProduct _ ty2 -> ty2
+        _ -> TyError ("| infer AT-Snd: expected the product type but got something else from the inferred type of e ≡ " ++ showTerm nctx t1 ++ " assuming snd at the top of the surrounding context Σ ≡ " ++ showSurroundingContext nctx sctx)
+    ((SFst : sctx'), TmPair t1 t2) ->
+      case infer tctx sctx' t1 of
+        TyError e -> TyError ("| infer AT-Pair-Fst: failed to infer e1 ≡ " ++ showTerm nctx t1 ++ " assuming the surrounding context Σ ≡ " ++ showSurroundingContext nctx sctx' ++ "\n" ++ e)
+        ty1 ->
+          case infer tctx [] t2 of
+            TyError e -> TyError ("| infer AT-Pair-Fst: failed to infer e2 ≡ " ++ showTerm nctx t2 ++ " assuming the empty surrounding context Σ" ++ "\n" ++ e)
+            ty2 -> TyProduct ty1 ty2
+    ((SSnd : sctx'), TmPair t1 t2) ->
+      case infer tctx [] t1 of
+        TyError e -> TyError ("| infer AT-Pair-Snd: failed to infer e1 ≡ " ++ showTerm nctx t1 ++ " assuming the empty surrounding context Σ" ++ "\n" ++ e)
+        ty1 ->
+          case infer tctx sctx' t2 of
+            TyError e -> TyError ("| infer AT-Pair-Snd: failed to infer e2 ≡ " ++ showTerm nctx t2 ++ " assuming the surrounding context Σ ≡ " ++ showSurroundingContext nctx sctx' ++ "\n" ++ e)
+            ty2 -> TyProduct ty1 ty2
+    (_, TmIf t1 t2 t3) ->
+      case infer tctx [SType TyBool] t1 of
+        TyError e -> TyError ("| infer AT-If: failed to infer e1 ≡ " ++ showTerm nctx t1 ++ " assuming the type A ≡ TyBool as the surrounding context Σ" ++ "\n" ++ e)
+        TyBool ->
+          case (infer tctx sctx t2, infer tctx sctx t3) of
+            (TyError e, _) -> TyError ("| infer AT-If: failed to infer e2 ≡ " ++ showTerm nctx t1 ++ " assuming the surrounding context Σ ≡ " ++ showSurroundingContext nctx sctx ++ "\n" ++ e)
+            (_, TyError e) -> TyError ("| infer AT-If: failed to infer e3 ≡ " ++ showTerm nctx t1 ++ " assuming the surrounding context Σ ≡ " ++ showSurroundingContext nctx sctx ++ "\n" ++ e)
+            (ty2, ty3) | ty2 == ty3 -> ty2
+            (ty2, ty3) -> TyError ("| infer AT-If: type mismatch between the type B ≡ " ++ showType nctx ty2 ++ " and the type C ≡ " ++ showType nctx ty3 ++ ", of term e2 ≡ " ++ showTerm nctx t2 ++ " and the term e3 ≡ " ++ showTerm nctx t3 ++ ", respectively")
+        _ -> TyError ("| infer AT-If: expected TyBool but got something else from the type of inferring e1 ≡ " ++ showTerm nctx t1 ++ " assuming the type A ≡ TyBool as the surrounding context Σ")
     (_, _)
       | isGenericConsumer t ->
           case infer tctx [] t of
@@ -151,6 +199,16 @@ subtypeInfer tctx stctx ty sctx =
                 (UnsolvedTyVar x' : _) -> (Nothing, TyError ("| subtype infer AS-Infs: expected unsolved α ≡ " ++ x ++ " but got unsolved α ≡ " ++ x'))
                 (_ : _) -> (Nothing, TyError ("| subtype infer AS-Infs: expected unsolved type variable for α ≡ " ++ x ++ " in the subtyping environment Δ ≡ " ++ showSubtypingEnvironment ntctx stctx ++ " but didn't get it"))
                 [] -> (Nothing, TyError ("| subtype infer AS-Infs: index out of bounds for " ++ x ++ " in the subtyping environment Δ ≡ " ++ showSubtypingEnvironment ntctx stctx))
+    (TyProduct ty1 ty2, (SFst : sctx')) ->
+      case subtypeInfer tctx stctx ty1 sctx' of
+        (_, TyError e) -> (Nothing, TyError ("| subtype infer AS-Fst: failed to subtype infer the type A ≡ " ++ showType nctx ty1 ++ " assuming Σ ≡ " ++ showSurroundingContext ntctx sctx' ++ "\n" ++ e))
+        (Just stctx', ty1') -> (Just stctx', TyProduct ty1' ty2)
+        (Nothing, _) -> (Nothing, TyError ("| subtype infer AS-Fst: expected a subtyping environment Δ' but got nothing"))
+    (TyProduct ty1 ty2, (SSnd : sctx')) ->
+      case subtypeInfer tctx stctx ty2 sctx' of
+        (_, TyError e) -> (Nothing, TyError ("| subtype infer AS-Snd: failed to subtype infer the type B ≡ " ++ showType nctx ty2 ++ " assuming Σ ≡ " ++ showSurroundingContext ntctx sctx' ++ "\n" ++ e))
+        (Just stctx', ty2') -> (Just stctx', TyProduct ty1 ty2')
+        (Nothing, _) -> (Nothing, TyError ("| subtype infer AS-Snd: expected a subtyping environment Δ' but got nothing"))
     (_, _) -> (Nothing, TyError ("| subtype infer No rules apply: the typing environment Γ ≡ " ++ showTypingEnvironment ntctx tctx ++ ", the subtyping environment Δ ≡ " ++ showSubtypingEnvironment ntctx stctx ++ ", the type A ≡ " ++ showType nctx ty ++ " and the surrounding context Σ ≡ " ++ showSurroundingContext ntctx sctx))
   where
     nctx = nstctx ++ ntctx
@@ -177,6 +235,7 @@ subtypeCheck tctx stctx ty1 pol ty2 =
   case (ty1, pol, ty2) of
     (TyInt, _, TyInt) -> (Just stctx, Nothing)
     (TyFloat, _, TyFloat) -> (Just stctx, Nothing)
+    (TyBool, _, TyBool) -> (Just stctx, Nothing)
     (TyVar k1 _ x1, _, TyVar k2 _ x2)
       | x1 == x2 && k1 == k2 ->
           if ((k1 < length tctx && elem x1 ntctx) || (k1 < length stctx && elem x1 nstctx))
@@ -226,6 +285,15 @@ subtypeCheck tctx stctx ty1 pol ty2 =
             (_ : _) -> (Nothing, Just ("| subtype check AS-∀: expected the top of Δ' to be a variable binding of α ≡ " ++ x2 ++ " but got another name"))
             [] -> (Nothing, Just ("| subtype check AS-∀: the subtyping environment Δ' is empty and shouldn't be"))
         (Nothing, _) -> (Nothing, Just ("| subtype check AS-∀: expected subtyping environment Δ' but got nothing"))
+    (TyProduct ty11 ty12, _, TyProduct ty21 ty22) ->
+      case subtypeCheck tctx stctx ty11 pol ty21 of
+        (_, Just e) -> (Nothing, Just ("| subtype check AS-Pair: failed to subtype check the type A ≡ " ++ showType nctx ty11 ++ " against the type C ≡ " ++ showType nctx ty21 ++ " assuming the subtyping environment Δ ≡ " ++ showSubtypingEnvironment ntctx stctx ++ "\n" ++ e))
+        (Just stctx', Nothing) ->
+          case subtypeCheck tctx stctx' ty11 pol ty21 of
+            (_, Just e) -> (Nothing, Just ("| subtype check AS-Pair: failed to subtype check the type B ≡ " ++ showType nctx ty12 ++ " against the type D ≡ " ++ showType nctx ty22 ++ " assuming the subtyping environment Δ' ≡ " ++ showSubtypingEnvironment ntctx stctx' ++ "\n" ++ e))
+            (Just stctx'', Nothing) -> (Just stctx'', Nothing)
+            (Nothing, _) -> (Nothing, Just ("| subtype check AS-Pair: expected subtyping environment Δ'' but got nothing"))
+        (Nothing, _) -> (Nothing, Just ("| subtype check AS-Pair: expected subtyping environment Δ' but got nothing"))
     (_, _, _) -> (Nothing, Just ("| subtype check No rules apply: the typing environment Γ ≡ " ++ showTypingEnvironment ntctx tctx ++ ", the subtyping environment Δ ≡ " ++ showSubtypingEnvironment ntctx stctx ++ ", the type A ≡ " ++ showType nctx ty1 ++ ", the polarity is " ++ showPolarity pol ++ " and the type B ≡ " ++ showType nctx ty2))
   where
     nctx = nstctx ++ ntctx

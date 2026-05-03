@@ -32,6 +32,8 @@ type SurroundingContext = [SurroundingInfo]
 data SurroundingInfo
   = SType Type
   | STerm TermNode
+  | SFst
+  | SSnd
   deriving (Eq, Show)
 
 data Polarity
@@ -39,13 +41,29 @@ data Polarity
   | NegativePolarity
   deriving (Eq, Show)
 
+data NumOp
+  = PlusOp
+  | MinusOp
+  | MultOp
+  | DivOp
+  deriving (Eq, Show)
+
+data BoolOp
+  = AndOp
+  | OrOp
+  deriving (Eq, Show)
+
 data ConstInfo
   = ConstInt Int
   | ConstFloat Float
-  | ConstPlusI
-  | ConstPlusF
-  | ConstPlusInt Int
-  | ConstPlusFloat Float
+  | ConstOpI NumOp
+  | ConstOpF NumOp
+  | ConstOpInt NumOp Int
+  | ConstOpFloat NumOp Float
+  | ConstOpB BoolOp
+  | ConstOpBool BoolOp Bool
+  | ConstBool Bool
+  | ConstNot
   deriving (Eq, Show)
 
 data TermNode = TermNode
@@ -64,28 +82,36 @@ data Term
   | TmTyApp TermNode Type
   | TmAnno TermNode Type
   | TmAbsAnno Name Type TermNode
+  | TmPair TermNode TermNode
+  | TmFst TermNode
+  | TmSnd TermNode
+  | TmIf TermNode TermNode TermNode
   | TmError String
   deriving (Eq, Show)
 
 data Type
   = TyInt
   | TyFloat
+  | TyBool
   | TyVarRaw Name
   | TyVar Index Index Name
   | TyArrow Type Type
   | TyForAll Name Type
+  | TyProduct Type Type
   | TyError String
   deriving (Show)
 
 instance Eq (Type) where
-  TyInt == TyInt                             = True
-  TyFloat == TyFloat                         = True
-  (TyVarRaw x1) == (TyVarRaw x2)             = x1 == x2
-  (TyVar k1 l1 _) == (TyVar k2 l2 _)         = k1 == k2 && l1 == l2
-  (TyArrow ty11 ty12) == (TyArrow ty21 ty22) = ty11 == ty21 && ty12 == ty22
-  (TyForAll _ ty11) == (TyForAll _ ty21)     = ty11 == ty21
-  (TyError e1) == (TyError e2)               = e1 == e2
-  _ == _                                     = False
+  TyInt == TyInt                                 = True
+  TyFloat == TyFloat                             = True
+  TyBool == TyBool                               = True
+  (TyVarRaw x1) == (TyVarRaw x2)                 = x1 == x2
+  (TyVar k1 l1 _) == (TyVar k2 l2 _)             = k1 == k2 && l1 == l2
+  (TyArrow ty11 ty12) == (TyArrow ty21 ty22)     = ty11 == ty21 && ty12 == ty22
+  (TyForAll _ ty11) == (TyForAll _ ty21)         = ty11 == ty21
+  (TyProduct ty11 ty12) == (TyProduct ty21 ty22) = ty11 == ty21 && ty12 == ty22
+  (TyError e1) == (TyError e2)                   = e1 == e2
+  _ == _                                         = False
 
 fromMaybe :: Maybe a -> a
 fromMaybe (Just x) = x
@@ -106,3 +132,25 @@ isGenericConsumer t =
 negatePolarity :: Polarity -> Polarity
 negatePolarity PositivePolarity = NegativePolarity
 negatePolarity NegativePolarity = PositivePolarity
+
+numOpToOp :: NumOp -> (Int -> Int -> Int)
+numOpToOp op =
+  case op of
+    PlusOp  -> (+)
+    MinusOp -> (-)
+    MultOp  -> (*)
+    DivOp   -> (div)
+
+fracOpToOp :: NumOp -> (Float -> Float -> Float)
+fracOpToOp op =
+  case op of
+    PlusOp  -> (+)
+    MinusOp -> (-)
+    MultOp  -> (*)
+    DivOp   -> (/)
+
+boolOpToOp :: BoolOp -> (Bool -> Bool -> Bool)
+boolOpToOp op =
+  case op of
+    AndOp -> (&&)
+    OrOp  -> (||)

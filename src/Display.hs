@@ -1,6 +1,5 @@
 module Display where
 
-import           Data.List
 import           Lexer
 import           Syntax
 
@@ -8,7 +7,11 @@ showTerm' :: TermNode -> String
 showTerm' t =
   case showTerm [] t of
     "()" -> showTerm [] t
-    _    -> removeOuterParens $ showTerm [] t
+    _ ->
+      let s = showTerm [] t
+       in case getTm t of
+            TmPair _ _ -> s
+            _          -> removeOuterParens s
 
 showTerm :: NameContext -> TermNode -> String
 showTerm ctx t =
@@ -32,17 +35,39 @@ showTerm ctx t =
     TmAbsAnno x ty1 t1 ->
       let x' = fixName ctx x
        in "(" ++ "λ" ++ x' ++ ": " ++ showType ctx ty1 ++ "." ++ showTerm (x' : ctx) t1 ++ ")"
+    TmPair t1 t2 -> "(" ++ showTerm ctx t1 ++ ", " ++ showTerm ctx t2 ++ ")"
+    TmFst t1 -> "(" ++ "fst " ++ showTerm ctx t1 ++ ")"
+    TmSnd t1 -> "(" ++ "snd " ++ showTerm ctx t1 ++ ")"
+    TmIf t1 t2 t3 -> "(" ++ "if " ++ showTerm ctx t1 ++ " then " ++ showTerm ctx t2 ++ " else " ++ showTerm ctx t3 ++ ")"
     TmError e -> "#" ++ e ++ "#"
 
 showConst :: ConstInfo -> String
 showConst c =
   case c of
-    ConstInt n       -> show n
-    ConstFloat u     -> show u
-    ConstPlusI       -> "+ⁱ"
-    ConstPlusF       -> "+ᶠ"
-    ConstPlusInt n   -> "+ⁱ<" ++ show n ++ ">"
-    ConstPlusFloat u -> "+ᶠ<" ++ show u ++ ">"
+    ConstInt n        -> show n
+    ConstFloat u      -> show u
+    ConstOpI op       -> showNumOp op ++ "ⁱ"
+    ConstOpF op       -> showNumOp op ++ "ᶠ"
+    ConstOpInt op n   -> showNumOp op ++ "ⁱ" ++ "<" ++ show n ++ ">"
+    ConstOpFloat op u -> showNumOp op ++ "ᶠ" ++ "<" ++ show u ++ ">"
+    ConstBool b       -> show b
+    ConstOpB op       -> showBoolOp op
+    ConstOpBool op b  -> showBoolOp op ++ "<" ++ show b ++ ">"
+    ConstNot          -> "not"
+
+showNumOp :: NumOp -> String
+showNumOp op =
+  case op of
+    PlusOp  -> "+"
+    MinusOp -> "-"
+    MultOp  -> "*"
+    DivOp   -> "/"
+
+showBoolOp :: BoolOp -> String
+showBoolOp op =
+  case op of
+    AndOp -> "&&"
+    OrOp  -> "||"
 
 showType' :: Type -> String
 showType' ty = removeOuterParens $ showType [] ty
@@ -52,6 +77,7 @@ showType ctx ty =
   case ty of
     TyInt -> "Int"
     TyFloat -> "Float"
+    TyBool -> "Bool"
     TyVar k l x ->
       let ctxLength = length ctx
        in if l == ctxLength
@@ -62,6 +88,7 @@ showType ctx ty =
       let x' = fixName ctx x
        in "(" ++ "∀" ++ x' ++ "." ++ showType (x' : ctx) ty1 ++ ")"
     TyArrow ty1 ty2 -> "(" ++ showType ctx ty1 ++ " → " ++ showType ctx ty2 ++ ")"
+    TyProduct ty1 ty2 -> "(" ++ showType ctx ty1 ++ " * " ++ showType ctx ty2 ++ ")"
     TyError e -> e
 
 showFileInfo :: FileInfo -> String
@@ -75,8 +102,6 @@ showFileInfo (AlexPn p l c) =
     ++ "\n"
     ++ "Column: "
     ++ show c
-
--- Display helper functions below this line
 
 removeOuterParens :: String -> String
 removeOuterParens xs
@@ -113,6 +138,8 @@ showSurroundingInfo ctx info =
   case info of
     SType ty -> showType ctx ty
     STerm t  -> showTerm ctx t
+    SFst     -> "fst"
+    SSnd     -> "snd"
 
 showSurroundingContext :: NameContext -> SurroundingContext -> String
 showSurroundingContext nctx sctx = showStringList (map (showSurroundingInfo nctx) sctx)
@@ -139,5 +166,5 @@ showSubTyEnvBinding ctx b =
     UnsolvedTyVar x  -> x
 
 showPolarity :: Polarity -> String
-showPolarity PositivePolarity = "+"
-showPolarity NegativePolarity = "-"
+showPolarity PositivePolarity = "<=+"
+showPolarity NegativePolarity = "<=-"
