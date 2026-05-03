@@ -31,7 +31,8 @@ Check the referenced article, the example inputs from ```programs/default_tests.
 | Terms | Meaning |
 | :----: | :------ |
 | i | The integer, a number, of type Int |
-| u | The float, a floating point number, of type Float|
+| u | The float, a floating point number, of type Float |
+| b | The boolean, a truth value, of type Bool |
 | x | The term variable, of type<br>depending on the environment,<br>and requires a term abstraction to abstract it |
 | \x.t1 | The term abstraction, of type<br>T -> T1, where T is the<br>type given to x and T1 of t1,<br>and x, the name of the term variable<br>must not be capitalized, for otherwise it<br>becomes a type variable abstraction |
 | \x: T.t1 | The annotated term abstraction, of type<br>T -> T1, where T is the T from<br>the annotated T of \x: T.t1,<br>and x, the name of the term variable<br>must not be capitalized, for otherwise it<br>becomes invalid syntax |
@@ -41,18 +42,33 @@ Check the referenced article, the example inputs from ```programs/default_tests.
 | t1 : T | The annotation of type<br>T, should t1's type T1 match it |
 | let x = t2 in t1 | The let-binding, which in this case is<br>syntactic sugar for ((\x.t1) t2) |
 | let x: T = t2 in t1 | The let-binding, which in this case is<br>syntactic sugar for ((\x: T.t1) t2) |
-| +I | The plus operator for integers<br>of type Int -> Int -> Int |
-| +F | The plus operator for floats<br>of type Float -> Float -> Float |
-| +ⁱ\<i\> | The partially applied plus operator for integers<br>of type Int -> Int, which is unachievable<br>without first evaluating, and the i within<br>the angled brackets stands for the first<br>received integer argument |
-| +ᶠ\<u\> | The partially applied plus operator for floats<br>of type Float -> Float, which is unachievable<br>without first evaluating, and the u within<br>the angled brackets stands for the first<br>received float argument |
+| opI | An operator for integers<br>of type Int -> Int -> Int |
+| opF | An operator for floats<br>of type Float -> Float -> Float |
+| op | An operator for booleans<br>of type Bool -> Bool -> Bool |
+| opⁱ\<i\> | A partially applied operator for integers<br>of type Int -> Int, which is unachievable<br>without first evaluating, and the i within<br>the angled brackets stands for the first<br>received integer argument |
+| opᶠ\<u\> | A partially applied operator for floats<br>of type Float -> Float, which is unachievable<br>without first evaluating, and the u within<br>the angled brackets stands for the first<br>received float argument |
+| opᵇ\<b\> | A partially applied plus operator for integers<br>of type Bool -> Bool, which is unachievable<br>without first evaluating, and the b within<br>the angled brackets stands for the first<br>received boolean argument |
+| not | The negation operator for booleans<br>of type Bool->Bool |
+| if t1 then t2 else t3 | The if-then-else statement, where t1 must be<br>of type Bool and the types of t2 and t3,<br>T2 and T3, must be the same |
+| (t1, t2) | The pair, of type (T1, T2), the product type |
+| fst t1 | The fst projection, of type T1, where t1 must be<br>of the type (T1, T2) |
+| fst t1 | The snd projection, of type T2, where t1 must be<br>of the type (T1, T2) |
+
+The operators for numeric types (ints and floats) are +, -, * and /. (plus, minus, mult, div)
+
+The division for ints is floor division.
+
+The operators for boolean types (bools) are && and ||. (and, or)
 
 | Types | Meaning |
 | :---: | :------ |
 | Int | The integer type, which is for integers i |
 | Float | The float type, which is for floats u |
+| Bool | The boolean type, which is for booleans b |
 | X | The type variable, which requires a<br>type abstraction to abstract it |
 | T1 -> T2 | The arrow type, which is for<br>term abstractions/functions |
 | ∀X.T1 | The for-all type, which is for<br>type abstractions |
+| (T1, T2) | The product type, which is for pairs<br>and is right associative |
 
 ## REPL's Commands
 
