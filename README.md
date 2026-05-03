@@ -32,7 +32,8 @@ Check the referenced article, the example inputs from ```programs/default_tests.
 | :----: | :------ |
 | i | The integer, a number, of type Int |
 | u | The float, a floating point number, of type Float |
-| b | The boolean, a truth value, of type Bool |
+| True | The boolean true value, of type Bool |
+| False | The boolean false value, of type Bool |
 | () | The unit, an empty value, of type Unit |
 | x | The term variable, of type<br>depending on the environment,<br>and requires a term abstraction to abstract it |
 | \x.t1 | The term abstraction, of type<br>T -> T1, where T is the<br>type given to x and T1 of t1,<br>and x, the name of the term variable<br>must not be capitalized, for otherwise it<br>becomes a type variable abstraction |
