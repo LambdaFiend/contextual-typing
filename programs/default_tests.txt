@@ -3,3 +3,11 @@ example1 := (\id.id id 1) ((\X.\x.x) : forall X.X -> X)
 example2 := (\id.id @Int 1) ((\X.\x.x) : forall X.X -> X)
 
 example3 := (\id.id @(forall Y.Y->Y)) ((\X.\x.x) : forall X.X -> X)
+
+reverseExample1 := letrec rev: forall X.[X]->[X]->[X] \X xs acc = if empty xs then acc else (rev@X (tail xs) (head xs :: acc)) in let reverse \X xs:[X] = rev @X xs [] in reverse @Int [1, 2, 3]
+
+reverseExample2 := letrec rev: forall X.[X]->[X]->[X] \X xs acc = if empty xs then acc else (rev (tail xs) (head xs :: acc)) in let reverse \X xs:[X] = rev xs [] in reverse [1, 2, 3]
+
+uncurriedExample1 := \(x: Int, y: Int).+I x y
+
+uncurriedExample2 := (\(x, y).(y, x)) (1, 2)
