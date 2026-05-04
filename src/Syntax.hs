@@ -68,6 +68,7 @@ data ConstInfo
   | ConstFloat Float
   | ConstBool Bool
   | ConstUnit
+  | ConstChar Char
   | ConstOpI NumOp
   | ConstOpF NumOp
   | ConstOpInt NumOp Int
@@ -83,6 +84,11 @@ data ConstInfo
   | ConstOpUnit
   | ConstOpNU
   | ConstOpNUnit
+  | ConstOpCB BoolBoolOp
+  | ConstOpCharB BoolBoolOp Char
+  | ConstHead
+  | ConstTail
+  | ConstEmpty
   deriving (Eq, Show)
 
 data TermNode = TermNode
@@ -107,6 +113,8 @@ data Term
   | TmAbsUnc [Name] TermNode
   | TmAbsUncAnno [Name] [Type] TermNode
   | TmFix TermNode
+  | TmCons TermNode TermNode
+  | TmNil
   | TmError String
   deriving (Eq, Show)
 
@@ -115,11 +123,15 @@ data Type
   | TyFloat
   | TyBool
   | TyUnit
+  | TyTop
+  | TyBot
+  | TyChar
   | TyVarRaw Name
   | TyVar Index Index Name
   | TyArrow Type Type
   | TyForAll Name Type
   | TyTuple [Type]
+  | TyList Type
   | TyError String
   deriving (Show)
 
@@ -128,11 +140,15 @@ instance Eq (Type) where
   TyFloat == TyFloat                         = True
   TyBool == TyBool                           = True
   TyUnit == TyUnit                           = True
+  TyTop == TyTop                             = True
+  TyBot == TyBot                             = True
+  TyChar == TyChar                           = True
   (TyVarRaw x1) == (TyVarRaw x2)             = x1 == x2
   (TyVar k1 l1 _) == (TyVar k2 l2 _)         = k1 == k2 && l1 == l2
   (TyArrow ty11 ty12) == (TyArrow ty21 ty22) = ty11 == ty21 && ty12 == ty22
   (TyForAll _ ty11) == (TyForAll _ ty21)     = ty11 == ty21
   (TyTuple tys1) == (TyTuple tys2)           = tys1 == tys2
+  (TyList ty1) == (TyList ty2)               = ty1 == ty2
   (TyError e1) == (TyError e2)               = e1 == e2
   _ == _                                     = False
 
@@ -150,6 +166,8 @@ isGenericConsumer t =
     TmVar _ _ _ -> True
     TmAnno _ _  -> True
     TmTyAbs _ _ -> True
+    TmFix _     -> True
+    TmNil       -> True
     _           -> False
 
 negatePolarity :: Polarity -> Polarity
@@ -192,6 +210,16 @@ numBoolOpToOp op =
 
 fracBoolOpToOp :: BoolBoolOp -> (Float -> Float -> Bool)
 fracBoolOpToOp op =
+  case op of
+    LTOp -> (<)
+    GTOp -> (>)
+    LEOp -> (<=)
+    GEOp -> (>=)
+    EqOp -> (==)
+    NEOp -> (/=)
+
+charBoolOpToOp :: BoolBoolOp -> (Char -> Char -> Bool)
+charBoolOpToOp op =
   case op of
     LTOp -> (<)
     GTOp -> (>)

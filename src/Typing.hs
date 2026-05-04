@@ -11,7 +11,7 @@ infer' t = infer [] [] t
 infer :: TypingEnvironment -> SurroundingContext -> TermNode -> Type
 infer tctx sctx t =
   case (sctx, getTm t) of
-    ([], TmConst c) -> constToType c
+    ([], TmConst c) -> tyShift 0 (length tctx) (constToType c)
     ([], TmVar k _ x)
       | k < length tctx ->
           case tctx !? k of
@@ -19,7 +19,7 @@ infer tctx sctx t =
             _ -> TyError ("| infer AT-Var: index out of bounds for " ++ x ++ " of the typing environment Γ ≡ " ++ showTypingEnvironment nctx tctx)
     ([], TmAnno t1 ty1) ->
       case infer tctx [SType ty1] t1 of
-        TyError e -> TyError ("| infer AT-Ann: failed to infer the term e ≡ " ++ showTerm nctx t1 ++ " using the annotation of type A ≡ " ++ "[" ++ showType nctx ty1 ++ "]" ++ " as the surrounding context Σ" ++ "\n" ++ e)
+        TyError e -> TyError ("| infer AT-Ann: failed to infer the term e ≡ " ++ showTerm nctx t1 ++ " using the annotation of type A ≡ " ++ showType nctx ty1 ++ " as the surrounding context Σ" ++ "\n" ++ e)
         _ -> ty1
     ([SType (TyArrow ty1 ty2)], TmAbs x t1) ->
       case infer (TmVarBind x (tyShift 0 1 ty1) : tctx) [SType (tyShift 0 1 ty2)] t1 of
@@ -116,7 +116,7 @@ infer tctx sctx t =
       case infer tctx (STerm t2 : sctx) t1 of
         TyError e -> TyError ("| infer AT-App: failed to infer the term e1 ≡ " ++ showTerm nctx t1 ++ " assuming the term e2 ≡ " ++ showTerm nctx t2 ++ " at the top of the surrounding context Σ ≡ " ++ showSurroundingContext nctx sctx ++ "\n" ++ e)
         TyArrow _ ty2 -> ty2
-        ty1 -> TyError ("| infer AT-App: arrow type expected but got: " ++ "\n" ++ showType nctx ty1)
+        ty1 -> TyError ("| infer AT-App: arrow type expected but got: " ++ showType nctx ty1)
     ([], TmTyAbs x t1) ->
       case infer (TyVarBind x : tctx) [] t1 of
         TyError e -> TyError ("| infer AT-TLam1: failed to infer the term e ≡ " ++ showTerm (x : nctx) t1 ++ " assuming the type variable α ≡ " ++ x ++ " at the top of the typing environment Γ ≡ " ++ showTypingEnvironment nctx tctx ++ " and assuming the empty surrounding context Σ" ++ "\n" ++ e)
@@ -153,7 +153,7 @@ infer tctx sctx t =
           let tuplefn :: ((TermNode, Type), Int) -> Type
               tuplefn ((t1, ty1), n) =
                 case infer tctx [SType ty1] t1 of
-                  TyError e -> TyError ("| infer AT-AnnTuple: failed to infer e" ++ show n ++ " ≡ " ++ showTerm nctx t1 ++ " assuming the type A" ++ show n ++ " ≡ " ++ "[" ++ showType nctx ty1 ++ "]" ++ " as the surrounding context Σ" ++ "\n" ++ e)
+                  TyError e -> TyError ("| infer AT-AnnTuple: failed to infer e" ++ show n ++ " ≡ " ++ showTerm nctx t1 ++ " assuming the type A" ++ show n ++ " ≡ " ++ showType nctx ty1 ++ " as the surrounding context Σ" ++ "\n" ++ e)
                   ty1' -> ty1'
               tys' = map tuplefn (zip (zip ts tys) [1 ..])
            in if all (\x -> case x of TyError _ -> False; _ -> True) tys'
@@ -204,13 +204,24 @@ infer tctx sctx t =
         TyArrow ty1' ty2' | ty1' == ty2' -> ty1
         TyArrow ty1' ty2' -> TyError ("| infer AT-Fix2: A ≡ " ++ showType nctx ty1' ++ " B ≡ " ++ showType nctx ty2' ++ " are not the same type")
         ty1' -> TyError ("| infer AT-Fix2: expected the arrow type where the left side is the same as the right side, but instead got A ≡ " ++ showType nctx ty1')
-    ([STerm t2], TmFix t1) ->
-      let t1' = TermNode (getFI t) (TmTyAbs "X" (TermNode (getFI t) (TmAnno (shift' 0 1 t) (TyArrow (TyVar 0 (1 + length tctx) "X") (TyVar 0 (1 + length tctx) "X")))))
-       in case infer tctx sctx t1' of
-            TyError e -> TyError ("| infer AT-Fix3: failed to infer ΛX.((fix e) : X → X) ≡ " ++ showTerm nctx t1' ++ " assuming the surrounding context Σ ≡ " ++ showSurroundingContext nctx sctx ++ "\n" ++ e)
-            TyArrow ty1' ty2' | ty1' == ty2' -> ty2'
-            TyArrow ty1' ty2' -> TyError ("| infer AT-Fix3: A ≡ " ++ showType nctx ty1' ++ " B ≡ " ++ showType nctx ty2' ++ " are not the same type")
-            ty1' -> TyError ("| infer AT-Fix3: expected the arrow type where the left side is the same as the right side, but instead got A ≡ " ++ showType nctx ty1')
+    ([], TmCons t1 t2) ->
+      case infer tctx [] t1 of
+        TyError e -> TyError ("| infer AT-List1: failed to infer e1 ≡ " ++ showTerm nctx t1 ++ " assuming the empty surrounding context Σ" ++ "\n" ++ e)
+        ty1 ->
+          case infer tctx [SType (TyList ty1)] t2 of
+            TyError e -> TyError ("| infer AT-List1: failed to infer e2 ≡ " ++ showTerm nctx t2 ++ " assuming the term e1 ≡ " ++ showTerm nctx t1 ++ " 's inferred type A ≡ " ++ showType nctx (TyList ty1) ++ " as the surrounding context Σ" ++ "\n" ++ e)
+            TyList _ -> TyList ty1
+            ty1' -> TyError ("| infer AT-List1: expected the list type from e2 ≡ " ++ showTerm nctx t2 ++ " but instead got A' ≡ " ++ showType nctx ty1')
+    ([SType (TyList ty1)], TmCons t1 t2) ->
+      case infer tctx [SType ty1] t1 of
+        TyError e -> TyError ("| infer AT-List2: failed to infer e1 ≡ " ++ showTerm nctx t1 ++ " assuming the type A ≡ " ++ showType nctx ty1 ++ " as the surrounding context Σ" ++ "\n" ++ e)
+        _ ->
+          case infer tctx [SType (TyList ty1)] t2 of
+            TyError e -> TyError ("| infer AT-List2: failed to infer e2 ≡ " ++ showTerm nctx t2 ++ " assuming the type A ≡ " ++ showType nctx (TyList ty1) ++ " as the surrounding context Σ" ++ "\n" ++ e)
+            TyList _ -> TyList ty1
+            ty1' -> TyError ("| infer AT-List2: expected the list type from e2 ≡ " ++ showTerm nctx t2 ++ " but instead got A' ≡ " ++ showType nctx ty1')
+    ([], TmNil) -> tyShift 0 (length tctx) (TyForAll "X" (TyList (TyVar 0 1 "X")))
+    ([SType (TyList ty1)], TmNil) -> TyList ty1
     (_, _)
       | isGenericConsumer t ->
           case infer tctx [] t of
@@ -267,7 +278,7 @@ subtypeInfer tctx stctx ty sctx =
       | isClosedType stctx ty1 ->
           let sty1 = substCtxToTy stctx ty1
            in case infer tctx [SType (substCtxToTy stctx ty1)] t1 of
-                TyError e -> (Nothing, TyError ("| subtype infer AS-Trm-C: failed to infer the term e ≡ " ++ showTerm ntctx t1 ++ " assuming [Δ]A ≡ " ++ "[" ++ showType nctx sty1 ++ "]" ++ " as the surrounding context Σ" ++ "\n" ++ e))
+                TyError e -> (Nothing, TyError ("| subtype infer AS-Trm-C: failed to infer the term e ≡ " ++ showTerm ntctx t1 ++ " assuming [Δ]A ≡ " ++ showType nctx sty1 ++ " as the surrounding context Σ" ++ "\n" ++ e))
                 _ ->
                   case subtypeInfer tctx stctx ty2 sctx' of
                     (_, TyError e) -> (Nothing, TyError ("| subtype infer AS-Trm-C: failed to subtype infer B ≡ " ++ showType nctx ty2 ++ " assuming the surrounding context Σ ≡ " ++ showSurroundingContext ntctx sctx ++ "\n" ++ e))
@@ -275,17 +286,17 @@ subtypeInfer tctx stctx ty sctx =
                     (Nothing, _) -> (Nothing, TyError ("| subtype infer AS-Trm-C: expected subtyping environment Δ' but got nothing"))
     (TyArrow ty1 ty2, (STerm t1 : sctx'))
       | not (isClosedType stctx ty) ->
-          case infer tctx [] t1 of
+          case tyShift 0 (length stctx) (infer tctx [] t1) of
             TyError e -> (Nothing, TyError ("| subtype infer AS-Trm-O: failed to infer e ≡ " ++ showTerm ntctx t1 ++ " assuming an empty surrounding context" ++ "\n" ++ e))
             ty3 ->
-              case subtypeCheck tctx stctx (tyShift 0 (length stctx) ty3) NegativePolarity ty1 of
+              case subtypeCheck tctx stctx ty3 NegativePolarity ty1 of
                 (Nothing, Nothing) -> (Nothing, TyError ("| subtype infer AS-Trm-O: expected subtyping environment Δ' but got nothing, despite no subtype check errors"))
                 (Just stctx', Nothing) ->
                   case subtypeInfer tctx stctx' ty2 sctx' of
                     (_, TyError e) -> (Nothing, TyError ("| subtype infer AS-Trm-O: failed to subtype infer the type B ≡ " ++ showType nctx ty2 ++ " assuming the subtyping environment Δ' ≡ " ++ showSubtypingEnvironment ntctx stctx' ++ " and the surrounding context Σ ≡ " ++ showSurroundingContext ntctx sctx' ++ "\n" ++ e))
                     (Just stctx'', ty4) -> (Just stctx'', TyArrow ty3 ty4)
                     (Nothing, _) -> (Nothing, TyError ("| subtype infer AS-Trm-C: expected subtyping environment Δ'' but got nothing"))
-                (_, Just e) -> (Nothing, TyError ("| subtype infer AS-Trm-O: failed to subtype check the type C ≡ " ++ showType nctx ty3 ++ " assuming the surrounding context Σ as the type A ≡ " ++ "[" ++ showType nctx ty1 ++ "]" ++ "\n" ++ e))
+                (_, Just e) -> (Nothing, TyError ("| subtype infer AS-Trm-O: failed to subtype check the type C ≡ " ++ showType nctx ty3 ++ " assuming the surrounding context Σ as the type A ≡ " ++ showType nctx ty1 ++ "\n" ++ e))
     (TyVar k _ x, _)
       | k < length stctx && (case stctx !? k of Just s -> isSolved s; Nothing -> False) ->
           case stctx !? k of
@@ -345,11 +356,14 @@ subtypeCheck tctx stctx ty1 pol ty2 =
     (TyFloat, _, TyFloat) -> (Just stctx, Nothing)
     (TyBool, _, TyBool) -> (Just stctx, Nothing)
     (TyUnit, _, TyUnit) -> (Just stctx, Nothing)
+    (TyChar, _, TyChar) -> (Just stctx, Nothing)
+    (_, _, TyTop) -> (Just stctx, Nothing)
+    (TyBot, _, _) -> (Just stctx, Nothing)
     (TyVar k1 _ x1, _, TyVar k2 _ x2)
       | x1 == x2 && k1 == k2 ->
-          if ((k1 < length tctx && elem x1 ntctx) || (k1 < length stctx && elem x1 nstctx))
+          if (k1 < length nctx && elem x1 nctx)
             then (Just stctx, Nothing)
-            else (Nothing, Just ("| subtype check AS-UVar: α ≡ " ++ x1 ++ show k1 ++ show k2 ++ x2 ++ " is either out-of-scope or somehow does not belong to the typing environment Γ ≡ " ++ showTypingEnvironment ntctx tctx ++ " and to the Δ ≡ " ++ showSubtypingEnvironment ntctx stctx))
+            else (Nothing, Just ("| subtype check AS-UVar: α ≡ " ++ x1 ++ " of scoping " ++ show k1 ++ " is either out-of-scope or somehow does not belong to the typing environment Γ ≡ " ++ showTypingEnvironment ntctx tctx ++ " and to the Δ ≡ " ++ showSubtypingEnvironment ntctx stctx))
     (TyVar k _ x, PositivePolarity, _)
       | k < length stctx && (case stctx !? k of Just s -> isUnsolved s; Nothing -> False) ->
           case drop k stctx of
@@ -367,15 +381,21 @@ subtypeCheck tctx stctx ty1 pol ty2 =
     (TyVar k _ x, PositivePolarity, _)
       | k < length stctx && (case stctx !? k of Just s -> isSolved s; Nothing -> False) ->
           case findSolution stctx x k of
-            Just ty2' | (tyShift 0 (-(length stctx)) ty2) == ty2' -> (Just stctx, Nothing)
-            Just ty2' -> (Nothing, Just ("| subtype check AS-SVar-L: α's ≡ " ++ x ++ " solution ≡ " ++ showType nctx ty2' ++ " does not match A ≡ " ++ showType nctx ty2))
+            Just ty1' ->
+              case subtypeCheck tctx stctx (tyShift 0 (length stctx) ty1') pol ty2 of
+                (_, Just e) -> (Nothing, Just ("| subtype check AS-SVar-L: failed to subtype check α's solution type A ≡ " ++ showType nctx (tyShift 0 (length stctx) ty1') ++ " against the type B ≡ " ++ showType nctx ty2 ++ "\n" ++ e))
+                (Just stctx', Nothing) -> (Just stctx', Nothing)
+                (Nothing, _) -> (Nothing, Just ("| subtype check AS-SVar-L: expected subtyping environment Δ but got nothing"))
             Nothing -> (Nothing, Just ("| subtype check AS-SVar-L: there's not solution for α ≡ " ++ x))
     (_, PositivePolarity, TyVar k _ x)
       | k < length stctx && (case stctx !? k of Just s -> isSolved s; Nothing -> False) ->
           case findSolution stctx x k of
-            Just ty1' | (tyShift 0 (-(length stctx)) ty1) == ty1' -> (Just stctx, Nothing)
-            Just ty1' -> (Nothing, Just ("| subtype check AS-SVar-L: α's ≡ " ++ x ++ " solution ≡ " ++ showType nctx ty1' ++ " does not match A ≡ " ++ showType nctx ty1))
-            Nothing -> (Nothing, Just ("| subtype check AS-SVar-L: there's no solution for α ≡ " ++ x ++ " in the subtyping environment Δ ≡ " ++ showSubtypingEnvironment ntctx stctx))
+            Just ty2' ->
+              case subtypeCheck tctx stctx (tyShift 0 (length stctx) ty1) pol ty2' of
+                (_, Just e) -> (Nothing, Just ("| subtype check AS-SVar-R: failed to subtype check the type B ≡ " ++ showType nctx ty1 ++ " against α's solution type A ≡ " ++ showType nctx (tyShift 0 (length stctx) ty2') ++ "\n" ++ e))
+                (Just stctx', Nothing) -> (Just stctx', Nothing)
+                (Nothing, _) -> (Nothing, Just ("| subtype check AS-SVar-R: expected subtyping environment Δ but got nothing"))
+            Nothing -> (Nothing, Just ("| subtype check AS-SVar-R: there's not solution for α ≡ " ++ x))
     (TyArrow ty11 ty12, _, TyArrow ty21 ty22) ->
       case subtypeCheck tctx stctx ty21 (negatePolarity pol) ty11 of
         (_, Just e) -> (Nothing, Just ("| subtype check AS-Arr: failed to subtype check the type C ≡ " ++ showType nctx ty21 ++ " against the type A ≡ " ++ showType nctx ty11 ++ "\n" ++ e))
@@ -387,7 +407,7 @@ subtypeCheck tctx stctx ty1 pol ty2 =
         (Nothing, _) -> (Nothing, Just ("| subtype check AS-Arr: expected subtyping environment Δ' but got nothing"))
     (TyForAll _ ty11, _, TyForAll x2 ty21) ->
       case subtypeCheck tctx (UniversalTyVar x2 : stctx) (tySubst 0 0 (TyVar 0 (1 + length nctx) x2) ty11) pol ty21 of
-        (_, Just e) -> (Nothing, Just ("| subtype check AS-Arr: failed to subtype check the type A ≡ " ++ showType (x2 : nctx) ty11 ++ " against the type B ≡ " ++ showType (x2 : nctx) ty21 ++ " assuming the universal type variable α ≡ " ++ x2 ++ " at the top of the subtyping environment Δ ≡ " ++ showSubtypingEnvironment ntctx stctx ++ "\n" ++ e))
+        (_, Just e) -> (Nothing, Just ("| subtype check AS-∀: failed to subtype check the type A ≡ " ++ showType (x2 : nctx) ty11 ++ " against the type B ≡ " ++ showType (x2 : nctx) ty21 ++ " assuming the universal type variable α ≡ " ++ x2 ++ " at the top of the subtyping environment Δ ≡ " ++ showSubtypingEnvironment ntctx stctx ++ "\n" ++ e))
         (Just stctx', Nothing) ->
           case stctx' of
             (var : stctx'') | getNameSubTy var == x2 -> (Just stctx'', Nothing)
@@ -398,6 +418,11 @@ subtypeCheck tctx stctx ty1 pol ty2 =
       if length tys1 == length tys2
         then ruleASTuple tctx stctx (zip (zip tys1 tys2) [1 ..]) pol
         else (Nothing, Just ("| subtype AS-Tuple: tuple A's length ≡ " ++ show (length tys1) ++ " is not the same as tuple B's length ≡ " ++ show (length tys2)))
+    (TyList ty11, _, TyList ty21) ->
+      case subtypeCheck tctx stctx ty11 pol ty21 of
+        (_, Just e) -> (Nothing, Just ("| subtype check AS-List: failed to subtype check the type A ≡ " ++ showType nctx ty11 ++ " against the type B ≡ " ++ showType nctx ty21 ++ "\n" ++ e))
+        (Just stctx', Nothing) -> (Just stctx', Nothing)
+        (Nothing, _) -> (Nothing, Just ("| subtype check AS-List: expected subtyping environment Δ' but got nothing"))
     (_, _, _) -> (Nothing, Just ("| subtype check No rules apply: the typing environment Γ ≡ " ++ showTypingEnvironment ntctx tctx ++ ", the subtyping environment Δ ≡ " ++ showSubtypingEnvironment ntctx stctx ++ ", the type A ≡ " ++ showType nctx ty1 ++ ", the polarity is " ++ showPolarity pol ++ " and the type B ≡ " ++ showType nctx ty2))
   where
     nctx = nstctx ++ ntctx

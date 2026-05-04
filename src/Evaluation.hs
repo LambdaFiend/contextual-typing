@@ -31,6 +31,10 @@ eval1 t =
       TmApp (TermNode _ (TmAnno (TermNode fi1 (TmConst (ConstOpIntB op n1))) (TyArrow _ ty2))) (TermNode _ (TmConst (ConstInt n2))) -> TmAnno (TermNode fi1 (TmConst (ConstBool ((numBoolOpToOp op) n1 n2)))) ty2
       TmApp (TermNode _ (TmConst (ConstOpIB op))) (TermNode _ (TmConst (ConstInt n))) -> TmConst (ConstOpIntB op n)
       TmApp (TermNode _ (TmConst (ConstOpIntB op n1))) (TermNode _ (TmConst (ConstInt n2))) -> TmConst (ConstBool ((numBoolOpToOp op) n1 n2))
+      TmApp (TermNode _ (TmAnno (TermNode fi1 (TmConst (ConstOpCB op))) (TyArrow _ ty2))) (TermNode _ (TmConst (ConstChar c))) -> TmAnno (TermNode fi1 (TmConst (ConstOpCharB op c))) ty2
+      TmApp (TermNode _ (TmAnno (TermNode fi1 (TmConst (ConstOpCharB op c1))) (TyArrow _ ty2))) (TermNode _ (TmConst (ConstChar c2))) -> TmAnno (TermNode fi1 (TmConst (ConstBool ((charBoolOpToOp op) c1 c2)))) ty2
+      TmApp (TermNode _ (TmConst (ConstOpCB op))) (TermNode _ (TmConst (ConstChar c))) -> TmConst (ConstOpCharB op c)
+      TmApp (TermNode _ (TmConst (ConstOpCharB op c1))) (TermNode _ (TmConst (ConstChar c2))) -> TmConst (ConstBool ((charBoolOpToOp op) c1 c2))
       TmApp (TermNode _ (TmAnno (TermNode fi1 (TmConst ConstOpU)) (TyArrow _ ty2))) (TermNode _ (TmConst ConstUnit)) -> TmAnno (TermNode fi1 (TmConst ConstOpUnit)) ty2
       TmApp (TermNode _ (TmAnno (TermNode fi1 (TmConst ConstOpUnit)) (TyArrow _ ty2))) (TermNode _ (TmConst ConstUnit)) -> TmAnno (TermNode fi1 (TmConst (ConstBool True))) ty2
       TmApp (TermNode _ (TmConst ConstOpU)) (TermNode _ (TmConst ConstUnit)) -> TmConst ConstOpUnit
@@ -39,6 +43,22 @@ eval1 t =
       TmApp (TermNode _ (TmAnno (TermNode fi1 (TmConst ConstOpNUnit)) (TyArrow _ ty2))) (TermNode _ (TmConst ConstUnit)) -> TmAnno (TermNode fi1 (TmConst (ConstBool False))) ty2
       TmApp (TermNode _ (TmConst ConstOpNU)) (TermNode _ (TmConst ConstUnit)) -> TmConst ConstOpNUnit
       TmApp (TermNode _ (TmConst ConstOpNUnit)) (TermNode _ (TmConst ConstUnit)) -> TmConst (ConstBool False)
+      TmApp (TermNode _ (TmAnno (TermNode _ (TmConst ConstHead)) (TyArrow _ ty2))) (TermNode _ (TmCons t1 _)) -> TmAnno t1 ty2
+      TmApp (TermNode _ (TmConst ConstHead)) (TermNode _ (TmCons t1 _)) -> getTm t1
+      TmApp (TermNode _ (TmAnno (TermNode fi1 (TmConst ConstHead)) (TyArrow _ ty12))) (TermNode _ (TmAnno (TermNode _ (TmCons t1 _)) (TyList ty2))) -> TmAnno (TermNode fi1 (TmAnno t1 ty2)) ty12
+      TmApp (TermNode _ (TmConst ConstHead)) (TermNode _ (TmAnno (TermNode _ (TmCons t1 _)) (TyList ty2))) -> TmAnno t1 ty2
+      TmApp (TermNode _ (TmAnno (TermNode _ (TmConst ConstTail)) (TyArrow _ ty2))) (TermNode _ (TmCons _ t2)) -> TmAnno t2 ty2
+      TmApp (TermNode _ (TmConst ConstTail)) (TermNode _ (TmCons _ t2)) -> getTm t2
+      TmApp (TermNode _ (TmAnno (TermNode fi1 (TmConst ConstTail)) (TyArrow _ ty12))) (TermNode _ (TmAnno (TermNode _ (TmCons _ t2)) ty2)) -> TmAnno (TermNode fi1 (TmAnno t2 ty2)) ty12
+      TmApp (TermNode _ (TmConst ConstTail)) (TermNode _ (TmAnno (TermNode _ (TmCons _ t2)) ty2)) -> TmAnno t2 ty2
+      TmApp (TermNode _ (TmAnno (TermNode fi1 (TmConst ConstEmpty)) (TyArrow _ ty2))) (TermNode _ (TmCons _ _)) -> TmAnno (TermNode fi1 (TmConst (ConstBool False))) ty2
+      TmApp (TermNode _ (TmConst ConstEmpty)) (TermNode _ (TmCons _ _)) -> TmConst (ConstBool False)
+      TmApp (TermNode _ (TmAnno (TermNode fi1 (TmConst ConstEmpty)) (TyArrow _ ty12))) (TermNode _ (TmAnno (TermNode _ (TmCons _ _)) _)) -> TmAnno (TermNode fi1 (TmConst (ConstBool False))) ty12
+      TmApp (TermNode _ (TmConst ConstEmpty)) (TermNode _ (TmAnno (TermNode _ (TmCons _ _)) _)) -> TmConst (ConstBool False)
+      TmApp (TermNode _ (TmAnno (TermNode fi1 (TmConst ConstEmpty)) (TyArrow _ ty2))) (TermNode _ TmNil) -> TmAnno (TermNode fi1 (TmConst (ConstBool True))) ty2
+      TmApp (TermNode _ (TmConst ConstEmpty)) (TermNode _ TmNil) -> TmConst (ConstBool True)
+      TmApp (TermNode _ (TmAnno (TermNode fi1 (TmConst ConstEmpty)) (TyArrow _ ty12))) (TermNode _ (TmAnno (TermNode _ TmNil) _)) -> TmAnno (TermNode fi1 (TmConst (ConstBool True))) ty12
+      TmApp (TermNode _ (TmConst ConstEmpty)) (TermNode _ (TmAnno (TermNode _ TmNil) _)) -> TmConst (ConstBool True)
       TmApp (TermNode fi1 (TmAnno (TermNode _ (TmTyAbs _ t1)) (TyForAll _ ty1))) (TermNode fi2 (TmConst c)) ->
         TmApp (TermNode fi1 (TmAnno (shift' 0 (-1) t1) (typingEvalSubst (constToType c) ty1))) (TermNode fi2 (TmConst c))
       TmApp (TermNode fi1 (TmAnno (TermNode _ (TmTyAbs _ t1)) (TyForAll _ ty1))) (TermNode fi2 (TmAnno t2 ty2)) ->
@@ -114,14 +134,6 @@ eval1 t =
         | not (isVal t1) ->
             let result = eval1 t1
              in checkError result (TmIf result t2 t3)
-      TmIf t1 t2 t3
-        | not (isVal t2) ->
-            let result = eval1 t2
-             in checkError result (TmIf t1 result t3)
-      TmIf t1 t2 t3
-        | not (isVal t3) ->
-            let result = eval1 t3
-             in checkError result (TmIf t1 t2 result)
       TmIf (TermNode _ (TmConst (ConstBool True))) t2 _ -> getTm t2
       TmIf (TermNode _ (TmConst (ConstBool False))) _ t3 -> getTm t3
       TmIf (TermNode _ (TmAnno (TermNode _ (TmConst (ConstBool True))) _)) t2 _ -> getTm t2
@@ -138,6 +150,14 @@ eval1 t =
         | not (isVal t1) ->
             let result = eval1 t1
              in checkError result (TmFix result)
+      TmCons t1 t2
+        | not (isVal t1) ->
+            let result = eval1 t1
+             in checkError result (TmCons result t2)
+      TmCons v1 t2
+        | not (isVal t2) ->
+            let result = eval1 t2
+             in checkError result (TmCons v1 result)
       _ -> TmError ("No rule applies" ++ showFileInfo (getFI t))
   where
     checkError :: TermNode -> Term -> Term

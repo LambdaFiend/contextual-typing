@@ -11,6 +11,13 @@ showTerm' t =
     TmTuple _           -> showTerm [] t
     _                   -> removeOuterParens (showTerm [] t)
 
+showTerm'' :: NameContext -> TermNode -> String
+showTerm'' ctx t =
+  case getTm t of
+    (TmConst ConstUnit) -> showTerm ctx t
+    TmTuple _           -> showTerm ctx t
+    _                   -> removeOuterParens (showTerm ctx t)
+
 showTerm :: NameContext -> TermNode -> String
 showTerm ctx t =
   case getTm t of
@@ -44,7 +51,39 @@ showTerm ctx t =
       let xs' = map (fixName ctx) xs
        in "(" ++ "λ" ++ "(" ++ intercalate ", " (map (\(x, y) -> x ++ ": " ++ showType ctx y) (zip xs' tys)) ++ ")" ++ "." ++ showTerm (reverse xs' ++ ctx) t1 ++ ")"
     TmFix t1 -> "(" ++ "fix " ++ showTerm ctx t1 ++ ")"
+    TmCons t1 t2 ->
+      let fcons = getFullCons t
+       in if all (\x -> case getTm x of TmConst (ConstChar _) -> True; _ -> False) fcons
+            then
+              let r = map (\x -> case getTm x of TmConst (ConstChar c) -> c; _ -> '§') fcons
+               in case find ((==) '§') r of
+                    Nothing -> r
+                    Just _ -> "#TmList: unexpected string's (list of characters) contents#"
+            else case showSugarList ctx t2 of
+              Left xs ->
+                case reverse xs of
+                  (s : xs') -> foldr (\x y -> "(" ++ x ++ " :: " ++ y ++ ")") s (showTerm'' ctx t1 : reverse xs')
+                  _ -> "#TmList: unexpected list size#"
+              Right xs -> "[" ++ foldr (\x y -> y ++ ", " ++ x) (showTerm'' ctx t1) (reverse xs) ++ "]"
+    TmNil -> "[]"
     TmError e -> "#" ++ e ++ "#"
+
+getFullCons :: TermNode -> [TermNode]
+getFullCons t =
+  case getTm t of
+    TmCons t1 t2 -> t1 : getFullCons t2
+    TmNil        -> []
+    _            -> t : []
+
+showSugarList :: NameContext -> TermNode -> Either [String] [String]
+showSugarList ctx t =
+  case getTm t of
+    TmCons t1 t2 ->
+      case showSugarList ctx t2 of
+        Left xs  -> Left (showTerm'' ctx t1 : xs)
+        Right xs -> Right (showTerm'' ctx t1 : xs)
+    TmNil -> Right []
+    _ -> Left [showTerm ctx t]
 
 showConst :: ConstInfo -> String
 showConst c =
@@ -53,6 +92,7 @@ showConst c =
     ConstFloat u       -> show u
     ConstBool b        -> show b
     ConstUnit          -> "()"
+    ConstChar ch       -> show ch
     ConstOpI op        -> showNumOp op ++ "ⁱ"
     ConstOpF op        -> showNumOp op ++ "ᶠ"
     ConstOpInt op n    -> showNumOp op ++ "ⁱ" ++ "<" ++ show n ++ ">"
@@ -68,6 +108,11 @@ showConst c =
     ConstOpUnit        -> "==" ++ "ᵘ" ++ "<" ++ "()" ++ ">"
     ConstOpNU          -> "/=" ++ "ᵘ"
     ConstOpNUnit       -> "/=" ++ "ᵘ" ++ "<" ++ "()" ++ ">"
+    ConstOpCB op       -> showBoolBoolOp op ++ "ᶜ"
+    ConstOpCharB op ch -> showBoolBoolOp op ++ "ᶜ" ++ "<" ++ show ch ++ ">"
+    ConstHead          -> "head"
+    ConstTail          -> "tail"
+    ConstEmpty         -> "empty"
 
 showNumOp :: NumOp -> String
 showNumOp op =
@@ -109,6 +154,9 @@ showType ctx ty =
     TyFloat -> "Float"
     TyBool -> "Bool"
     TyUnit -> "()"
+    TyTop -> "Top"
+    TyBot -> "Bot"
+    TyChar -> "Char"
     TyVar k l x ->
       let ctxLength = length ctx
        in if l == ctxLength
@@ -121,6 +169,7 @@ showType ctx ty =
     TyArrow ty1 ty2 -> "(" ++ showType ctx ty1 ++ " → " ++ showType ctx ty2 ++ ")"
     TyTuple (ty1 : tys) -> "(" ++ foldr (\x y -> y ++ ", " ++ x) (showType ctx ty1) (reverse (map (showType ctx) tys)) ++ ")"
     TyTuple [] -> "#TyTuple: bad tuple length#"
+    TyList ty1 -> "[" ++ showType ctx ty1 ++ "]"
     TyError e -> e
 
 showFileInfo :: FileInfo -> String

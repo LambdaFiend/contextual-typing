@@ -24,6 +24,8 @@ traverseDownTm f t = TermNode fi $
     TmAbsUnc xs t1 -> TmAbsUnc xs (traverseTm' t1)
     TmAbsUncAnno xs tys t1 -> TmAbsUncAnno xs (map fTy tys) (traverseTm' t1)
     TmFix t1 -> TmFix (traverseTm' t1)
+    TmCons t1 t2 -> TmCons (traverseTm' t1) (traverseTm' t2)
+    TmNil -> tm
     TmError _ -> tm
   where
     tm = getTm t'
@@ -34,15 +36,17 @@ traverseDownTm f t = TermNode fi $
 isVal :: TermNode -> Bool
 isVal t =
   case getTm t of
-    TmConst _                       -> True
-    TmAbs _ _                       -> True
-    TmTyAbs _ _                     -> True
-    TmAnno t1 _ | isVal t1          -> True
-    TmAbsAnno _ _ _                 -> True
-    TmTuple ts | and (map isVal ts) -> True
-    TmAbsUnc _ _                    -> True
-    TmAbsUncAnno _ _ _              -> True
-    _                               -> False
+    TmConst _                           -> True
+    TmAbs _ _                           -> True
+    TmTyAbs _ _                         -> True
+    TmAnno t1 _ | isVal t1              -> True
+    TmAbsAnno _ _ _                     -> True
+    TmTuple ts | and (map isVal ts)     -> True
+    TmAbsUnc _ _                        -> True
+    TmAbsUncAnno _ _ _                  -> True
+    TmCons t1 t2 | isVal t1 && isVal t2 -> True
+    TmNil                               -> True
+    _                                   -> False
 
 typingEvalSubst :: Type -> Type -> Type
 typingEvalSubst s t = tyShift' (-1) (tySubst' 0 (tyShift' 1 s) t)
@@ -79,6 +83,7 @@ tyShift c d ty =
     TyForAll x ty1  -> TyForAll x (tyShift (c + 1) d ty1)
     TyArrow ty1 ty2 -> TyArrow (tyShift c d ty1) (tyShift c d ty2)
     TyTuple tys     -> TyTuple (map (tyShift c d) tys)
+    TyList ty1      -> TyList (tyShift c d ty1)
     _               -> ty
 
 tySubst' :: Index -> Type -> Type -> Type
@@ -94,6 +99,7 @@ tySubst c j s ty =
     TyForAll x ty1  -> TyForAll x $ tySubst (c + 1) j s ty1
     TyArrow ty1 ty2 -> TyArrow (tySubst c j s ty1) (tySubst c j s ty2)
     TyTuple tys     -> TyTuple (map (tySubst c j s) tys)
+    TyList ty1      -> TyList (tySubst c j s ty1)
     _               -> ty
 
 shift' :: Index -> Index -> TermNode -> TermNode
@@ -152,6 +158,7 @@ genIndexType ctx ty =
     TyForAll x ty1 -> TyForAll x (genIndexType (x : ctx) ty1)
     TyArrow ty1 ty2 -> TyArrow (genIndexType ctx ty1) (genIndexType ctx ty2)
     TyTuple tys -> TyTuple (map (genIndexType ctx) tys)
+    TyList ty1 -> TyList (genIndexType ctx ty1)
     _ -> ty
 
 shiftSurroundingContext :: SurroundingContext -> Index -> SurroundingContext
@@ -173,11 +180,15 @@ collectFreeTyVars' ctx ty =
     TyFloat         -> []
     TyBool          -> []
     TyUnit          -> []
+    TyTop           -> []
+    TyBot           -> []
+    TyChar          -> []
     TyVarRaw _      -> []
     TyVar k _ _     -> if k < length ctx then [] else [k - length ctx]
     TyForAll x ty1  -> collectFreeTyVars' (x : ctx) ty1
     TyArrow ty1 ty2 -> collectFreeTyVars' ctx ty1 ++ collectFreeTyVars' ctx ty2
     TyTuple tys     -> concat (map (collectFreeTyVars' ctx) tys)
+    TyList ty1      -> collectFreeTyVars' ctx ty1
     TyError _       -> []
 
 isClosedType :: SubtypingEnvironment -> Type -> Bool
@@ -207,6 +218,9 @@ substCtxToTy ctx ty =
     TyFloat -> ty
     TyBool -> ty
     TyUnit -> ty
+    TyTop -> ty
+    TyBot -> ty
+    TyChar -> ty
     TyVarRaw _ -> ty
     TyVar k _ x ->
       case findSolution ctx x k of
@@ -215,30 +229,37 @@ substCtxToTy ctx ty =
     TyForAll x ty1 -> TyForAll x (substCtxToTy (UniversalTyVar x : ctx) ty1)
     TyArrow ty1 ty2 -> TyArrow (substCtxToTy ctx ty1) (substCtxToTy ctx ty2)
     TyTuple tys -> TyTuple (map (substCtxToTy ctx) tys)
+    TyList ty1 -> TyList (substCtxToTy ctx ty1)
     TyError _ -> ty
 
 constToType :: ConstInfo -> Type
 constToType c =
   case c of
-    ConstInt _        -> TyInt
-    ConstFloat _      -> TyFloat
-    ConstBool _       -> TyBool
-    ConstUnit         -> TyUnit
-    ConstOpI _        -> TyArrow TyInt (TyArrow TyInt TyInt)
-    ConstOpF _        -> TyArrow TyFloat (TyArrow TyFloat TyFloat)
-    ConstOpInt _ _    -> TyArrow TyInt TyInt
-    ConstOpFloat _ _  -> TyArrow TyFloat TyFloat
-    ConstOpB _        -> TyArrow TyBool (TyArrow TyBool TyBool)
-    ConstOpBool _ _   -> TyArrow TyBool TyBool
-    ConstNot          -> TyArrow TyBool TyBool
-    ConstOpIB _       -> TyArrow TyInt (TyArrow TyInt TyBool)
-    ConstOpIntB _ _   -> TyArrow TyInt TyBool
-    ConstOpFB _       -> TyArrow TyFloat (TyArrow TyFloat TyBool)
+    ConstInt _ -> TyInt
+    ConstFloat _ -> TyFloat
+    ConstBool _ -> TyBool
+    ConstUnit -> TyUnit
+    ConstChar _ -> TyChar
+    ConstOpI _ -> TyArrow TyInt (TyArrow TyInt TyInt)
+    ConstOpF _ -> TyArrow TyFloat (TyArrow TyFloat TyFloat)
+    ConstOpInt _ _ -> TyArrow TyInt TyInt
+    ConstOpFloat _ _ -> TyArrow TyFloat TyFloat
+    ConstOpB _ -> TyArrow TyBool (TyArrow TyBool TyBool)
+    ConstOpBool _ _ -> TyArrow TyBool TyBool
+    ConstNot -> TyArrow TyBool TyBool
+    ConstOpIB _ -> TyArrow TyInt (TyArrow TyInt TyBool)
+    ConstOpIntB _ _ -> TyArrow TyInt TyBool
+    ConstOpFB _ -> TyArrow TyFloat (TyArrow TyFloat TyBool)
     ConstOpFloatB _ _ -> TyArrow TyFloat TyBool
-    ConstOpU          -> TyArrow TyUnit (TyArrow TyUnit TyBool)
-    ConstOpUnit       -> TyArrow TyUnit TyBool
-    ConstOpNU         -> TyArrow TyUnit (TyArrow TyUnit TyBool)
-    ConstOpNUnit      -> TyArrow TyUnit TyBool
+    ConstOpU -> TyArrow TyUnit (TyArrow TyUnit TyBool)
+    ConstOpUnit -> TyArrow TyUnit TyBool
+    ConstOpNU -> TyArrow TyUnit (TyArrow TyUnit TyBool)
+    ConstOpNUnit -> TyArrow TyUnit TyBool
+    ConstOpCB _ -> TyArrow TyChar (TyArrow TyChar TyBool)
+    ConstOpCharB _ _ -> TyArrow TyChar TyBool
+    ConstHead -> TyForAll "X" (TyArrow (TyList (TyVar 0 1 "X")) (TyVar 0 1 "X"))
+    ConstTail -> TyForAll "X" (TyArrow (TyList (TyVar 0 1 "X")) (TyList (TyVar 0 1 "X")))
+    ConstEmpty -> TyForAll "X" (TyArrow (TyList (TyVar 0 1 "X")) TyBool)
 
 id' :: TermNode -> UpdatedTmArrTm
 id' t = UpdatedTmArrTm (t, id', id', id :: Type -> Type)
@@ -267,11 +288,15 @@ findTypeErrors t =
     TyFloat         -> []
     TyBool          -> []
     TyUnit          -> []
+    TyChar          -> []
+    TyTop           -> []
+    TyBot           -> []
     TyVar _ _ _     -> []
     TyVarRaw x      -> ["Found TyVarRaw: " ++ x]
     TyForAll _ ty   -> findTypeErrors ty
     TyArrow ty1 ty2 -> findTypeErrors ty1 ++ findTypeErrors ty2
     TyTuple tys     -> concat (map findTypeErrors tys)
+    TyList ty1      -> findTypeErrors ty1
     TyError e       -> [e]
 
 findTermErrors' :: TermNode -> String
@@ -295,4 +320,6 @@ findTermErrors t =
     TmAbsUnc _ t1 -> findTermErrors t1
     TmAbsUncAnno _ _ t1 -> findTermErrors t1
     TmFix t1 -> findTermErrors t1
+    TmCons t1 t2 -> findTermErrors t1 ++ findTermErrors t2
+    TmNil -> []
     TmError e -> [e]
