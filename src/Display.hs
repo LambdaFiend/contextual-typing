@@ -20,7 +20,7 @@ showTerm ctx t =
       let ctxLength = length ctx
        in if l == ctxLength
             then getNameFromContext ctx k x
-            else "#TmVar: bad context length: " ++ show l ++ "/=" ++ show ctxLength ++ "#"
+            else "#TmVar: bad context length: " ++ show l ++ "/=" ++ show ctxLength ++ " for " ++ x ++ "#"
     TmAbs x t1 ->
       let x' = fixName ctx x
        in "(" ++ "λ" ++ x' ++ "." ++ showTerm (x' : ctx) t1 ++ ")"
@@ -113,7 +113,7 @@ showType ctx ty =
       let ctxLength = length ctx
        in if l == ctxLength
             then getNameFromContext ctx k x
-            else "#TyVar: bad context length: " ++ show l ++ "/=" ++ show ctxLength ++ "#"
+            else "#TyVar: bad context length: " ++ show l ++ "/=" ++ show ctxLength ++ " for " ++ x ++ "#"
     TyVarRaw x -> "#" ++ "Raw type variable found in display: " ++ x ++ "#"
     TyForAll x ty1 ->
       let x' = fixName ctx x

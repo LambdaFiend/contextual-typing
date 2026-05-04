@@ -194,10 +194,23 @@ infer tctx sctx t =
         _ -> TyError ("| infer AT-If: expected TyBool but got something else from the type of inferring e1 ≡ " ++ showTerm nctx t1 ++ " assuming the type A ≡ TyBool as the surrounding context Σ")
     ([], TmFix t1) ->
       case infer tctx sctx t1 of
-        TyError e -> TyError ("| infer AT-Fix: failed to infer e ≡ " ++ showTerm nctx t1 ++ "\n" ++ e)
+        TyError e -> TyError ("| infer AT-Fix1: failed to infer e ≡ " ++ showTerm nctx t1 ++ "\n" ++ e)
         TyArrow ty1 ty2 | ty1 == ty2 -> ty2
-        TyArrow ty1 ty2 -> TyError ("| infer AT-Fix: A ≡ " ++ showType nctx ty1 ++ " B ≡ " ++ showType nctx ty2 ++ " are not the same type")
-        ty1 -> TyError ("| infer AT-Fix: expected the arrow type where the left side is the same as the right side, but instead got A ≡ " ++ showType nctx ty1)
+        TyArrow ty1 ty2 -> TyError ("| infer AT-Fix1: A ≡ " ++ showType nctx ty1 ++ " B ≡ " ++ showType nctx ty2 ++ " are not the same type")
+        ty1 -> TyError ("| infer AT-Fix1: expected the arrow type where the left side is the same as the right side, but instead got A ≡ " ++ showType nctx ty1)
+    ([SType ty1], TmFix t1) ->
+      case infer tctx [SType (TyArrow ty1 ty1)] t1 of
+        TyError e -> TyError ("| infer AT-Fix2: failed to infer e ≡ " ++ showTerm nctx t1 ++ " assuming the type A -> A ≡ " ++ showType nctx (TyArrow ty1 ty1) ++ " as the surrounding context Σ" ++ "\n" ++ e)
+        TyArrow ty1' ty2' | ty1' == ty2' -> ty1
+        TyArrow ty1' ty2' -> TyError ("| infer AT-Fix2: A ≡ " ++ showType nctx ty1' ++ " B ≡ " ++ showType nctx ty2' ++ " are not the same type")
+        ty1' -> TyError ("| infer AT-Fix2: expected the arrow type where the left side is the same as the right side, but instead got A ≡ " ++ showType nctx ty1')
+    ([STerm t2], TmFix t1) ->
+      let t1' = TermNode (getFI t) (TmTyAbs "X" (TermNode (getFI t) (TmAnno (shift' 0 1 t) (TyArrow (TyVar 0 (1 + length tctx) "X") (TyVar 0 (1 + length tctx) "X")))))
+       in case infer tctx sctx t1' of
+            TyError e -> TyError ("| infer AT-Fix3: failed to infer ΛX.((fix e) : X → X) ≡ " ++ showTerm nctx t1' ++ " assuming the surrounding context Σ ≡ " ++ showSurroundingContext nctx sctx ++ "\n" ++ e)
+            TyArrow ty1' ty2' | ty1' == ty2' -> ty2'
+            TyArrow ty1' ty2' -> TyError ("| infer AT-Fix3: A ≡ " ++ showType nctx ty1' ++ " B ≡ " ++ showType nctx ty2' ++ " are not the same type")
+            ty1' -> TyError ("| infer AT-Fix3: expected the arrow type where the left side is the same as the right side, but instead got A ≡ " ++ showType nctx ty1')
     (_, _)
       | isGenericConsumer t ->
           case infer tctx [] t of

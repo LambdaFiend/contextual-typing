@@ -46,28 +46,28 @@ eval1 t =
       TmApp (TermNode _ (TmAnno (TermNode fi1 (TmAnno t11 ty1)) _)) t2 -> TmApp (TermNode fi1 (TmAnno t11 ty1)) t2
       TmApp (TermNode _ (TmAbsUnc xs t11)) v2@(TermNode _ (TmTuple ts))
         | length xs == length ts && isVal v2 ->
-            getTm (foldr evalSubst t11 ts)
+            getTm (foldr (\(y, n) x -> evalSubst (shift' 0 n y) x) t11 (reverse (zip (reverse ts) [1 ..])))
       TmApp (TermNode _ (TmAnno (TermNode _ (TmAbsUnc xs t11)) (TyArrow _ ty2))) v2@(TermNode _ (TmTuple ts))
         | length xs == length ts && isVal v2 ->
-            TmAnno (TermNode (getFI t) (getTm (foldr evalSubst t11 ts))) ty2
-      TmApp (TermNode _ (TmAbsUncAnno xs _ t11)) v2@(TermNode _ (TmTuple ts))
+            TmAnno (TermNode (getFI t) (getTm (foldr (\(y, n) x -> evalSubst (shift' 0 n y) x) t11 (reverse (zip (reverse ts) [1 ..]))))) ty2
+      TmApp (TermNode fi1 (TmAbsUncAnno xs tys t11)) v2@(TermNode _ (TmTuple ts))
         | length xs == length ts && isVal v2 ->
-            getTm (foldr evalSubst t11 ts)
-      TmApp (TermNode _ (TmAnno (TermNode _ (TmAbsUncAnno xs _ t11)) (TyArrow _ ty2))) v2@(TermNode _ (TmTuple ts))
+            getTm (foldr (\((y, z), n) x -> evalSubst (TermNode fi1 (TmAnno (shift' 0 n y) (tyShift 0 n z))) x) t11 (reverse (zip (reverse (zip ts tys)) [1 ..])))
+      TmApp (TermNode _ (TmAnno (TermNode fi1 (TmAbsUncAnno xs tys t11)) (TyArrow _ ty2))) v2@(TermNode _ (TmTuple ts))
         | length xs == length ts && isVal v2 ->
-            TmAnno (TermNode (getFI t) (getTm (foldr evalSubst t11 ts))) ty2
+            TmAnno (TermNode (getFI t) (getTm (foldr (\((y, z), n) x -> evalSubst (TermNode fi1 (TmAnno (shift' 0 n y) (tyShift 0 n z))) x) t11 (reverse (zip (reverse (zip ts tys)) [1 ..]))))) ty2
       TmApp (TermNode _ (TmAbs _ t11)) v2
         | isVal v2 ->
             getTm (evalSubst v2 t11)
       TmApp (TermNode _ (TmAnno (TermNode _ (TmAbs _ t11)) (TyArrow _ ty2))) v2
         | isVal v2 ->
             TmAnno (TermNode (getFI t) (getTm (evalSubst v2 t11))) ty2
-      TmApp (TermNode _ (TmAbsAnno _ _ t11)) v2
+      TmApp (TermNode fi1 (TmAbsAnno _ ty1 t11)) v2
         | isVal v2 ->
-            getTm (evalSubst v2 t11)
-      TmApp (TermNode _ (TmAnno (TermNode _ (TmAbsAnno _ _ t11)) (TyArrow _ ty2))) v2
+            getTm (evalSubst (TermNode fi1 (TmAnno v2 ty1)) t11)
+      TmApp (TermNode _ (TmAnno (TermNode fi1 (TmAbsAnno _ ty1 t11)) (TyArrow _ ty2))) v2
         | isVal v2 ->
-            TmAnno (TermNode (getFI t) (getTm (evalSubst v2 t11))) ty2
+            TmAnno (TermNode (getFI t) (getTm (evalSubst (TermNode fi1 (TmAnno v2 ty1)) t11))) ty2
       TmApp v1 t2
         | isVal v1 ->
             let result = eval1 t2

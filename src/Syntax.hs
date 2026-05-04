@@ -150,7 +150,6 @@ isGenericConsumer t =
     TmVar _ _ _ -> True
     TmAnno _ _  -> True
     TmTyAbs _ _ -> True
-    TmFix _     -> True
     _           -> False
 
 negatePolarity :: Polarity -> Polarity
