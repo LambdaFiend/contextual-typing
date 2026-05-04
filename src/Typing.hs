@@ -192,6 +192,12 @@ infer tctx sctx t =
             (ty2, ty3) | ty2 == ty3 -> ty2
             (ty2, ty3) -> TyError ("| infer AT-If: type mismatch between the type B ≡ " ++ showType nctx ty2 ++ " and the type C ≡ " ++ showType nctx ty3 ++ ", of term e2 ≡ " ++ showTerm nctx t2 ++ " and the term e3 ≡ " ++ showTerm nctx t3 ++ ", respectively")
         _ -> TyError ("| infer AT-If: expected TyBool but got something else from the type of inferring e1 ≡ " ++ showTerm nctx t1 ++ " assuming the type A ≡ TyBool as the surrounding context Σ")
+    ([], TmFix t1) ->
+      case infer tctx sctx t1 of
+        TyError e -> TyError ("| infer AT-Fix: failed to infer e ≡ " ++ showTerm nctx t1 ++ "\n" ++ e)
+        TyArrow ty1 ty2 | ty1 == ty2 -> ty2
+        TyArrow ty1 ty2 -> TyError ("| infer AT-Fix: A ≡ " ++ showType nctx ty1 ++ " B ≡ " ++ showType nctx ty2 ++ " are not the same type")
+        ty1 -> TyError ("| infer AT-Fix: expected the arrow type where the left side is the same as the right side, but instead got A ≡ " ++ showType nctx ty1)
     (_, _)
       | isGenericConsumer t ->
           case infer tctx [] t of

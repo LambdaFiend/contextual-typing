@@ -126,6 +126,18 @@ eval1 t =
       TmIf (TermNode _ (TmConst (ConstBool False))) _ t3 -> getTm t3
       TmIf (TermNode _ (TmAnno (TermNode _ (TmConst (ConstBool True))) _)) t2 _ -> getTm t2
       TmIf (TermNode _ (TmAnno (TermNode _ (TmConst (ConstBool False))) _)) _ t3 -> getTm t3
+      TmFix (TermNode _ (TmAbs _ t2)) -> getTm (evalSubst t t2)
+      TmFix (TermNode _ (TmAbsAnno _ _ t2)) -> getTm (evalSubst t t2)
+      TmFix (TermNode _ (TmAbsUnc _ t2)) -> getTm (evalSubst t t2)
+      TmFix (TermNode _ (TmAbsUncAnno _ _ t2)) -> getTm (evalSubst t t2)
+      TmFix (TermNode _ (TmAnno (TermNode _ (TmAbs _ t2)) (TyArrow _ ty2))) -> TmAnno (evalSubst t t2) ty2
+      TmFix (TermNode _ (TmAnno (TermNode _ (TmAbsAnno _ _ t2)) (TyArrow _ ty2))) -> TmAnno (evalSubst t t2) ty2
+      TmFix (TermNode _ (TmAnno (TermNode _ (TmAbsUnc _ t2)) (TyArrow _ ty2))) -> TmAnno (evalSubst t t2) ty2
+      TmFix (TermNode _ (TmAnno (TermNode _ (TmAbsUncAnno _ _ t2)) (TyArrow _ ty2))) -> TmAnno (evalSubst t t2) ty2
+      TmFix t1
+        | not (isVal t1) ->
+            let result = eval1 t1
+             in checkError result (TmFix result)
       _ -> TmError ("No rule applies" ++ showFileInfo (getFI t))
   where
     checkError :: TermNode -> Term -> Term

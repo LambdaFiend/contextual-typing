@@ -25,6 +25,7 @@ $white+                          ;
 "&&"                             { \pos _ -> Token pos AND }
 "||"                             { \pos _ -> Token pos OR }
 "not"                            { \pos _ -> Token pos NOT }
+"fix"                            { \pos _ -> Token pos FIX }
 "+F"                             { \pos _ -> Token pos PLUSFLOAT }
 "+I"                             { \pos _ -> Token pos PLUSINT }
 "-F"                             { \pos _ -> Token pos MINUSFLOAT }
@@ -90,6 +91,7 @@ data TokenData
   | AND
   | OR
   | NOT
+  | FIX
   | PLUSFLOAT
   | PLUSINT
   | MINUSFLOAT

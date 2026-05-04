@@ -43,6 +43,7 @@ showTerm ctx t =
     TmAbsUncAnno xs tys t1 ->
       let xs' = map (fixName ctx) xs
        in "(" ++ "λ" ++ "(" ++ intercalate ", " (map (\(x, y) -> x ++ ": " ++ showType ctx y) (zip xs' tys)) ++ ")" ++ "." ++ showTerm (reverse xs' ++ ctx) t1 ++ ")"
+    TmFix t1 -> "(" ++ "fix " ++ showTerm ctx t1 ++ ")"
     TmError e -> "#" ++ e ++ "#"
 
 showConst :: ConstInfo -> String

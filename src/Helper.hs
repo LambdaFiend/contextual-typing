@@ -23,6 +23,7 @@ traverseDownTm f t = TermNode fi $
     TmIf t1 t2 t3 -> TmIf (traverseTm' t1) (traverseTm' t2) (traverseTm' t3)
     TmAbsUnc xs t1 -> TmAbsUnc xs (traverseTm' t1)
     TmAbsUncAnno xs tys t1 -> TmAbsUncAnno xs (map fTy tys) (traverseTm' t1)
+    TmFix t1 -> TmFix (traverseTm' t1)
     TmError _ -> tm
   where
     tm = getTm t'
@@ -293,4 +294,5 @@ findTermErrors t =
     TmIf t1 t2 t3 -> findTermErrors t1 ++ findTermErrors t2 ++ findTermErrors t3
     TmAbsUnc _ t1 -> findTermErrors t1
     TmAbsUncAnno _ _ t1 -> findTermErrors t1
+    TmFix t1 -> findTermErrors t1
     TmError e -> [e]

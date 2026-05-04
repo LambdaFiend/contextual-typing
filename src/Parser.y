@@ -25,6 +25,7 @@ import Syntax
 "&&"    { Token pos AND }
 "||"    { Token pos OR }
 "not"   { Token pos NOT }
+"fix"   { Token pos FIX }
 "+F"    { Token pos PLUSFLOAT }
 "+I"    { Token pos PLUSINT }
 "-F"    { Token pos MINUSFLOAT }
@@ -76,8 +77,8 @@ Term
 If : if Term then Term else Term { TermNode (tokenPos $1) (TmIf $2 $4 $6) }
 
 Let
-  : let NameLower "=" Term in Term          { TermNode (tokenPos $1) (TmApp (TermNode (tokenPos $3) (TmAbs (snd $2) $6)) $4) }
-  | let NameLower ":" Type "=" Term in Term { TermNode (tokenPos $1) (TmApp (TermNode (tokenPos $5) (TmAbsAnno (snd $2) $4 $8)) (TermNode (tokenPos $3) (TmAnno $6 $4))) }
+  : let NameLower "=" Term in Term             { TermNode (tokenPos $1) (TmApp (TermNode (tokenPos $3) (TmAbs (snd $2) $6)) $4) }
+  | let NameLower ":" Type "=" Term in Term    { TermNode (tokenPos $1) (TmApp (TermNode (tokenPos $5) (TmAbsAnno (snd $2) $4 $8)) (TermNode (tokenPos $3) (TmAnno $6 $4))) }
 
 Abs
   : "λ" ManyLowerAbs                                             { $2 }
@@ -122,6 +123,7 @@ Atom
   : Value                  { $1 }
   | "(" Term ")"           { $2 }
   | "(" Term "," Tuple ")" { TermNode (tokenPos $1) (TmTuple ($2 : $4)) }
+  | "fix" "(" Term ")"     { TermNode (tokenPos $1) (TmFix $3) }
 
 Tuple
   : Term "," Tuple { $1 : $3 }

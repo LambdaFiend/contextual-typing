@@ -106,6 +106,7 @@ data Term
   | TmIf TermNode TermNode TermNode
   | TmAbsUnc [Name] TermNode
   | TmAbsUncAnno [Name] [Type] TermNode
+  | TmFix TermNode
   | TmError String
   deriving (Eq, Show)
 
@@ -149,6 +150,7 @@ isGenericConsumer t =
     TmVar _ _ _ -> True
     TmAnno _ _  -> True
     TmTyAbs _ _ -> True
+    TmFix _     -> True
     _           -> False
 
 negatePolarity :: Polarity -> Polarity
