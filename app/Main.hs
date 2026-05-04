@@ -81,7 +81,7 @@ main :: IO ()
 main = do
   comml <- handleCommHistFile "command_history.txt"
   evaluate (length comml)
-  putStrLn "Welcome to Local Contextual Type Inference Contextual Typing, LCTICT for short!"
+  putStrLn "Welcome to Local Contextual Type Inference Contextual Typing, LCTICT for short"
   putStrLn "Enter :? for help with commands"
   runInputT customHaskelineSettings (main' [] (reverse (lines comml)))
   return ()
