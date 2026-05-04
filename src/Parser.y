@@ -167,7 +167,7 @@ Atom
   : Value                  { $1 }
   | "(" Term ")"           { $2 }
   | "(" Term "," Tuple ")" { TermNode (tokenPos $1) (TmTuple ($2 : $4)) }
-  | "fix" "(" Term ")"     { TermNode (tokenPos $1) (TmFix $3) }
+  | "fix" Atom             { TermNode (tokenPos $1) (TmFix $2) }
   | "[" ManyList "]"       { $2 }
   | quote                  { stringToCons ((\(QUOTE s) -> s) (tokenDat $1)) (tokenPos $1) }
 
