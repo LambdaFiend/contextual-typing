@@ -85,6 +85,7 @@ The operators for boolean types (bools) are ==, /=, && and ||. (and, or)
 
 The operators for unit types are ==, /=.
 
+
 | Types | Meaning |
 | :---: | :------ |
 | Int | The integer type, which is for integers i |
@@ -99,6 +100,9 @@ The operators for unit types are ==, /=.
 | ∀X.T1 | The for-all type, which is for<br>type abstractions |
 | (T1, T2) | The product type, which is for pairs<br>and is right associative |
 | \[T\] | The list type, which is for lists of any shared type |
+
+
+Evaluation may not work even if the term is well-typed, since the evaluator is not complex and tries to remove as little type annotations as possible, so that subject reduction is preserved. I might create an erasure function so that full evaluation may occur on-demand. Another reason is that inference allows sometimes for type applications to be omitted, which means there's a syntactic hole.
 
 ## REPL's Commands
 
