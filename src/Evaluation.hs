@@ -1,5 +1,6 @@
 module Evaluation where
 
+import           Data.List
 import           Display
 import           Helper
 import           Syntax
@@ -22,11 +23,39 @@ eval1 t =
       TmApp (TermNode _ (TmAnno (TermNode fi1 (TmConst (ConstOpInt op n1))) (TyArrow _ ty2))) (TermNode _ (TmConst (ConstInt n2))) -> TmAnno (TermNode fi1 (TmConst (ConstInt ((numOpToOp op) n1 n2)))) ty2
       TmApp (TermNode _ (TmConst (ConstOpI op))) (TermNode _ (TmConst (ConstInt n))) -> TmConst (ConstOpInt op n)
       TmApp (TermNode _ (TmConst (ConstOpInt op n1))) (TermNode _ (TmConst (ConstInt n2))) -> TmConst (ConstInt ((numOpToOp op) n1 n2))
+      TmApp (TermNode _ (TmAnno (TermNode fi1 (TmConst (ConstOpFB op))) (TyArrow _ ty2))) (TermNode _ (TmConst (ConstFloat u))) -> TmAnno (TermNode fi1 (TmConst (ConstOpFloatB op u))) ty2
+      TmApp (TermNode _ (TmAnno (TermNode fi1 (TmConst (ConstOpFloatB op u1))) (TyArrow _ ty2))) (TermNode _ (TmConst (ConstFloat u2))) -> TmAnno (TermNode fi1 (TmConst (ConstBool ((fracBoolOpToOp op) u1 u2)))) ty2
+      TmApp (TermNode _ (TmConst (ConstOpFB op))) (TermNode _ (TmConst (ConstFloat u))) -> TmConst (ConstOpFloatB op u)
+      TmApp (TermNode _ (TmConst (ConstOpFloatB op u1))) (TermNode _ (TmConst (ConstFloat u2))) -> TmConst (ConstBool ((fracBoolOpToOp op) u1 u2))
+      TmApp (TermNode _ (TmAnno (TermNode fi1 (TmConst (ConstOpIB op))) (TyArrow _ ty2))) (TermNode _ (TmConst (ConstInt n))) -> TmAnno (TermNode fi1 (TmConst (ConstOpIntB op n))) ty2
+      TmApp (TermNode _ (TmAnno (TermNode fi1 (TmConst (ConstOpIntB op n1))) (TyArrow _ ty2))) (TermNode _ (TmConst (ConstInt n2))) -> TmAnno (TermNode fi1 (TmConst (ConstBool ((numBoolOpToOp op) n1 n2)))) ty2
+      TmApp (TermNode _ (TmConst (ConstOpIB op))) (TermNode _ (TmConst (ConstInt n))) -> TmConst (ConstOpIntB op n)
+      TmApp (TermNode _ (TmConst (ConstOpIntB op n1))) (TermNode _ (TmConst (ConstInt n2))) -> TmConst (ConstBool ((numBoolOpToOp op) n1 n2))
+      TmApp (TermNode _ (TmAnno (TermNode fi1 (TmConst ConstOpU)) (TyArrow _ ty2))) (TermNode _ (TmConst ConstUnit)) -> TmAnno (TermNode fi1 (TmConst ConstOpUnit)) ty2
+      TmApp (TermNode _ (TmAnno (TermNode fi1 (TmConst ConstOpUnit)) (TyArrow _ ty2))) (TermNode _ (TmConst ConstUnit)) -> TmAnno (TermNode fi1 (TmConst (ConstBool True))) ty2
+      TmApp (TermNode _ (TmConst ConstOpU)) (TermNode _ (TmConst ConstUnit)) -> TmConst ConstOpUnit
+      TmApp (TermNode _ (TmConst ConstOpUnit)) (TermNode _ (TmConst ConstUnit)) -> TmConst (ConstBool True)
+      TmApp (TermNode _ (TmAnno (TermNode fi1 (TmConst ConstOpNU)) (TyArrow _ ty2))) (TermNode _ (TmConst ConstUnit)) -> TmAnno (TermNode fi1 (TmConst ConstOpNUnit)) ty2
+      TmApp (TermNode _ (TmAnno (TermNode fi1 (TmConst ConstOpNUnit)) (TyArrow _ ty2))) (TermNode _ (TmConst ConstUnit)) -> TmAnno (TermNode fi1 (TmConst (ConstBool False))) ty2
+      TmApp (TermNode _ (TmConst ConstOpNU)) (TermNode _ (TmConst ConstUnit)) -> TmConst ConstOpNUnit
+      TmApp (TermNode _ (TmConst ConstOpNUnit)) (TermNode _ (TmConst ConstUnit)) -> TmConst (ConstBool False)
       TmApp (TermNode fi1 (TmAnno (TermNode _ (TmTyAbs _ t1)) (TyForAll _ ty1))) (TermNode fi2 (TmConst c)) ->
         TmApp (TermNode fi1 (TmAnno (shift' 0 (-1) t1) (typingEvalSubst (constToType c) ty1))) (TermNode fi2 (TmConst c))
       TmApp (TermNode fi1 (TmAnno (TermNode _ (TmTyAbs _ t1)) (TyForAll _ ty1))) (TermNode fi2 (TmAnno t2 ty2)) ->
         TmApp (TermNode fi1 (TmAnno (shift' 0 (-1) t1) (typingEvalSubst ty2 ty1))) (TermNode fi2 (TmAnno t2 ty2))
       TmApp (TermNode _ (TmAnno (TermNode fi1 (TmAnno t11 ty1)) _)) t2 -> TmApp (TermNode fi1 (TmAnno t11 ty1)) t2
+      TmApp (TermNode _ (TmAbsUnc xs t11)) v2@(TermNode _ (TmTuple ts))
+        | length xs == length ts && isVal v2 ->
+            getTm (foldr evalSubst t11 ts)
+      TmApp (TermNode _ (TmAnno (TermNode _ (TmAbsUnc xs t11)) (TyArrow _ ty2))) v2@(TermNode _ (TmTuple ts))
+        | length xs == length ts && isVal v2 ->
+            TmAnno (TermNode (getFI t) (getTm (foldr evalSubst t11 ts))) ty2
+      TmApp (TermNode _ (TmAbsUncAnno xs _ t11)) v2@(TermNode _ (TmTuple ts))
+        | length xs == length ts && isVal v2 ->
+            getTm (foldr evalSubst t11 ts)
+      TmApp (TermNode _ (TmAnno (TermNode _ (TmAbsUncAnno xs _ t11)) (TyArrow _ ty2))) v2@(TermNode _ (TmTuple ts))
+        | length xs == length ts && isVal v2 ->
+            TmAnno (TermNode (getFI t) (getTm (foldr evalSubst t11 ts))) ty2
       TmApp (TermNode _ (TmAbs _ t11)) v2
         | isVal v2 ->
             getTm (evalSubst v2 t11)
@@ -60,26 +89,27 @@ eval1 t =
             let result = eval1 t1
              in checkError result (TmAnno result ty)
       TmAnno (TermNode _ (TmConst c)) _ -> TmConst c
-      TmPair t1 t2
+      TmTuple ts
+        | not (all isVal ts) ->
+            case dropWhile isVal ts of
+              (t1 : ts') ->
+                let result = eval1 t1
+                 in checkError result (TmTuple (takeWhile isVal ts ++ [result] ++ ts'))
+              [] -> TmError ("TmTuple: There was a strange evaluation error")
+      TmProj t1 n
         | not (isVal t1) ->
             let result = eval1 t1
-             in checkError result (TmPair result t2)
-      TmPair t1 t2
-        | not (isVal t1) ->
-            let result = eval1 t2
-             in checkError result (TmPair t1 result)
-      TmFst t1
-        | not (isVal t1) ->
-            let result = eval1 t1
-             in checkError result (TmFst result)
-      TmSnd t1
-        | not (isVal t1) ->
-            let result = eval1 t1
-             in checkError result (TmSnd result)
-      TmFst (TermNode _ (TmPair t1 _)) -> getTm t1
-      TmSnd (TermNode _ (TmPair _ t2)) -> getTm t2
-      TmFst (TermNode _ (TmAnno (TermNode _ (TmPair t1 _)) (TyProduct ty1 _))) -> TmAnno t1 ty1
-      TmSnd (TermNode _ (TmAnno (TermNode _ (TmPair _ t2)) (TyProduct _ ty2))) -> TmAnno t2 ty2
+             in checkError result (TmProj result n)
+      TmProj (TermNode _ (TmTuple ts)) n ->
+        case ts !? (n - 1) of
+          Just t1 -> getTm t1
+          Nothing -> TmError ("Tuple projection is index out of bounds for the number: " ++ show n)
+      TmProj (TermNode _ (TmAnno (TermNode _ (TmTuple ts)) (TyTuple tys))) n ->
+        if length ts == length tys
+          then case (ts !? (n - 1), tys !? (n - 1)) of
+            (Just t1, Just ty1) -> TmAnno t1 ty1
+            (_, _) -> TmError ("Tuple projection is index out of bounds for the number: " ++ show n)
+          else TmError ("Tuple length is not the same as its annotation length: " ++ show (length ts) ++ " /= " ++ show (length tys))
       TmIf t1 t2 t3
         | not (isVal t1) ->
             let result = eval1 t1

@@ -1,17 +1,15 @@
 module Display where
 
+import           Data.List
 import           Lexer
 import           Syntax
 
 showTerm' :: TermNode -> String
 showTerm' t =
-  case showTerm [] t of
-    "()" -> showTerm [] t
-    _ ->
-      let s = showTerm [] t
-       in case getTm t of
-            TmPair _ _ -> s
-            _          -> removeOuterParens s
+  case getTm t of
+    (TmConst ConstUnit) -> showTerm [] t
+    TmTuple _           -> showTerm [] t
+    _                   -> removeOuterParens (showTerm [] t)
 
 showTerm :: NameContext -> TermNode -> String
 showTerm ctx t =
@@ -35,26 +33,40 @@ showTerm ctx t =
     TmAbsAnno x ty1 t1 ->
       let x' = fixName ctx x
        in "(" ++ "λ" ++ x' ++ ": " ++ showType ctx ty1 ++ "." ++ showTerm (x' : ctx) t1 ++ ")"
-    TmPair t1 t2 -> "(" ++ showTerm ctx t1 ++ ", " ++ showTerm ctx t2 ++ ")"
-    TmFst t1 -> "(" ++ "fst " ++ showTerm ctx t1 ++ ")"
-    TmSnd t1 -> "(" ++ "snd " ++ showTerm ctx t1 ++ ")"
+    TmTuple (t1 : ts) -> "(" ++ foldr (\x y -> y ++ ", " ++ x) (showTerm ctx t1) (reverse (map (showTerm ctx) ts)) ++ ")"
+    TmTuple [] -> "#TmTuple: bad tuple length#"
+    TmProj t1 n -> "(" ++ showTerm ctx t1 ++ "." ++ show n ++ ")"
     TmIf t1 t2 t3 -> "(" ++ "if " ++ showTerm ctx t1 ++ " then " ++ showTerm ctx t2 ++ " else " ++ showTerm ctx t3 ++ ")"
+    TmAbsUnc xs t1 ->
+      let xs' = map (fixName ctx) xs
+       in "(" ++ "λ" ++ "(" ++ intercalate ", " xs' ++ ")" ++ "." ++ showTerm (reverse xs' ++ ctx) t1 ++ ")"
+    TmAbsUncAnno xs tys t1 ->
+      let xs' = map (fixName ctx) xs
+       in "(" ++ "λ" ++ "(" ++ intercalate ", " (map (\(x, y) -> x ++ ": " ++ showType ctx y) (zip xs' tys)) ++ ")" ++ "." ++ showTerm (reverse xs' ++ ctx) t1 ++ ")"
     TmError e -> "#" ++ e ++ "#"
 
 showConst :: ConstInfo -> String
 showConst c =
   case c of
-    ConstInt n        -> show n
-    ConstFloat u      -> show u
-    ConstBool b       -> show b
-    ConstUnit         -> "()"
-    ConstOpI op       -> showNumOp op ++ "ⁱ"
-    ConstOpF op       -> showNumOp op ++ "ᶠ"
-    ConstOpInt op n   -> showNumOp op ++ "ⁱ" ++ "<" ++ show n ++ ">"
-    ConstOpFloat op u -> showNumOp op ++ "ᶠ" ++ "<" ++ show u ++ ">"
-    ConstOpB op       -> showBoolOp op ++ "ᵇ"
-    ConstOpBool op b  -> showBoolOp op ++ "ᵇ" ++ "<" ++ show b ++ ">"
-    ConstNot          -> "not"
+    ConstInt n         -> show n
+    ConstFloat u       -> show u
+    ConstBool b        -> show b
+    ConstUnit          -> "()"
+    ConstOpI op        -> showNumOp op ++ "ⁱ"
+    ConstOpF op        -> showNumOp op ++ "ᶠ"
+    ConstOpInt op n    -> showNumOp op ++ "ⁱ" ++ "<" ++ show n ++ ">"
+    ConstOpFloat op u  -> showNumOp op ++ "ᶠ" ++ "<" ++ show u ++ ">"
+    ConstOpB op        -> showBoolOp op ++ "ᵇ"
+    ConstOpBool op b   -> showBoolOp op ++ "ᵇ" ++ "<" ++ show b ++ ">"
+    ConstNot           -> "not"
+    ConstOpIB op       -> showBoolBoolOp op ++ "ⁱ"
+    ConstOpIntB op n   -> showBoolBoolOp op ++ "ⁱ" ++ "<" ++ show n ++ ">"
+    ConstOpFB op       -> showBoolBoolOp op ++ "ᶠ"
+    ConstOpFloatB op u -> showBoolBoolOp op ++ "ᶠ" ++ "<" ++ show u ++ ">"
+    ConstOpU           -> "==" ++ "ᵘ"
+    ConstOpUnit        -> "==" ++ "ᵘ" ++ "<" ++ "()" ++ ">"
+    ConstOpNU          -> "/=" ++ "ᵘ"
+    ConstOpNUnit       -> "/=" ++ "ᵘ" ++ "<" ++ "()" ++ ">"
 
 showNumOp :: NumOp -> String
 showNumOp op =
@@ -69,9 +81,25 @@ showBoolOp op =
   case op of
     AndOp -> "&&"
     OrOp  -> "||"
+    EqOpB -> "=="
+    NEOpB -> "/="
+
+showBoolBoolOp :: BoolBoolOp -> String
+showBoolBoolOp op =
+  case op of
+    LTOp -> "<"
+    GTOp -> ">"
+    LEOp -> "<="
+    GEOp -> ">="
+    EqOp -> "=="
+    NEOp -> "/="
 
 showType' :: Type -> String
-showType' ty = removeOuterParens $ showType [] ty
+showType' ty =
+  case ty of
+    TyUnit    -> showType [] ty
+    TyTuple _ -> showType [] ty
+    _         -> removeOuterParens (showType [] ty)
 
 showType :: NameContext -> Type -> String
 showType ctx ty =
@@ -79,7 +107,7 @@ showType ctx ty =
     TyInt -> "Int"
     TyFloat -> "Float"
     TyBool -> "Bool"
-    TyUnit -> "Unit"
+    TyUnit -> "()"
     TyVar k l x ->
       let ctxLength = length ctx
        in if l == ctxLength
@@ -90,7 +118,8 @@ showType ctx ty =
       let x' = fixName ctx x
        in "(" ++ "∀" ++ x' ++ "." ++ showType (x' : ctx) ty1 ++ ")"
     TyArrow ty1 ty2 -> "(" ++ showType ctx ty1 ++ " → " ++ showType ctx ty2 ++ ")"
-    TyProduct ty1 ty2 -> "(" ++ showType ctx ty1 ++ " * " ++ showType ctx ty2 ++ ")"
+    TyTuple (ty1 : tys) -> "(" ++ foldr (\x y -> y ++ ", " ++ x) (showType ctx ty1) (reverse (map (showType ctx) tys)) ++ ")"
+    TyTuple [] -> "#TyTuple: bad tuple length#"
     TyError e -> e
 
 showFileInfo :: FileInfo -> String
@@ -140,8 +169,7 @@ showSurroundingInfo ctx info =
   case info of
     SType ty -> showType ctx ty
     STerm t  -> showTerm ctx t
-    SFst     -> "fst"
-    SSnd     -> "snd"
+    SProj n  -> "." ++ show n
 
 showSurroundingContext :: NameContext -> SurroundingContext -> String
 showSurroundingContext nctx sctx = showStringList (map (showSurroundingInfo nctx) sctx)

@@ -12,8 +12,6 @@ import Syntax
 
 %token
 
-"fst"   { Token pos FST }
-"snd"   { Token pos SND }
 "λ"     { Token pos LAMBDA }
 "∀"     { Token pos FORALL }
 "→"     { Token pos ARROW }
@@ -40,7 +38,6 @@ in      { Token pos IN }
 tyfloat { Token pos TYFLOAT }
 tyint   { Token pos TYINT }
 tybool  { Token pos TYBOOL }
-tyunit  { Token pos TYUNIT }
 true    { Token pos TRUE }
 false   { Token pos FALSE }
 if      { Token pos IF }
@@ -48,6 +45,23 @@ then    { Token pos THEN }
 else    { Token pos ELSE }
 tmfloat { Token pos (TMFLOAT u) }
 tmint   { Token pos (TMINT n) }
+"<F"    { Token pos LTFLOAT }
+"<I"    { Token pos LTINT }
+">F"    { Token pos GTFLOAT }
+">I"    { Token pos GTINT }
+"<=F"	{ Token pos LEFLOAT }
+"<=I"	{ Token pos LEINT }
+">=F"	{ Token pos GEFLOAT }
+">=I"	{ Token pos GEINT }
+"==F"   { Token pos EQFLOAT }
+"==I"   { Token pos EQINT }
+"==B"   { Token pos EQBOOL }
+"==U"   { Token pos EQUNIT }
+"/=F"   { Token pos NEFLOAT }
+"/=I"   { Token pos NEINT }
+"/=B"   { Token pos NEBOOL }
+"/=U"   { Token pos NEUNIT }
+"0"     { Token pos ZERO }
 idLower { Token pos (IDLower s) }
 idUpper { Token pos (IDUpper s) }
 
@@ -66,8 +80,20 @@ Let
   | let NameLower ":" Type "=" Term in Term { TermNode (tokenPos $1) (TmApp (TermNode (tokenPos $5) (TmAbsAnno (snd $2) $4 $8)) (TermNode (tokenPos $3) (TmAnno $6 $4))) }
 
 Abs
-  : "λ" ManyLowerAbs { $2 }
-  | "λ" ManyUpperAbs { $2 }
+  : "λ" ManyLowerAbs                                             { $2 }
+  | "λ" ManyUpperAbs                                             { $2 }
+  | "λ" "(" NameLower ")" "." Term                               { TermNode (tokenPos $1) (TmAbs (snd $3) $6) }
+  | "λ" "(" NameLower ":" Type ")" "." Term                      { TermNode (tokenPos $1) (TmAbsAnno (snd $3) $5 $8) }
+  | "λ" "(" NameLower "," UncurriedAbs ")" "." Term              { TermNode (tokenPos $1) (TmAbsUnc     ((snd $3) : $5) $8) }
+  | "λ" "(" NameLower ":" Type "," UncurriedAbsAnno ")" "." Term { TermNode (tokenPos $1) (TmAbsUncAnno ((snd $3) : fst $7) ($5 : snd $7) $10) }
+
+UncurriedAbsAnno
+  : NameLower ":" Type "," UncurriedAbsAnno { ((snd $1) : fst $5, $3 : snd $5) }
+  | NameLower ":" Type                      { ((snd $1) : [], $3 : []) }
+
+UncurriedAbs
+  : NameLower "," UncurriedAbs { (snd $1) : $3 }
+  | NameLower                  { (snd $1) : [] }
 
 ManyLowerAbs
   : NameLower ManyLowerAbs          { TermNode (fst $1) (TmAbs (snd $1) $2) }
@@ -82,24 +108,31 @@ ManyUpperAbs
 App
   : App Anno     { TermNode (getFI $1) (TmApp $1 $2) }
   | App "@" Type { TermNode (getFI $1) (TmTyApp $1 $3) }
-  | "fst" Anno   { TermNode (tokenPos $1) (TmFst $2) }
-  | "snd" Anno   { TermNode (tokenPos $1) (TmSnd $2) }
   | Anno         { $1 }
 
 Anno
-  : Atom ":" Type { TermNode (getFI $1) (TmAnno $1 $3) }
-  | Atom          { $1 }
+  : Proj ":" Type { TermNode (getFI $1) (TmAnno $1 $3) }
+  | Proj          { $1 }
+
+Proj
+  : Proj "." tmint { TermNode (getFI $1) (TmProj $1 ((\(TMINT s) -> s) (tokenDat $3))) }
+  | Atom           { $1 }
 
 Atom
-  : Value                 { $1 }
-  | "(" Term "," Term ")" { TermNode (tokenPos $1) (TmPair $2 $4) }
-  | "(" Term ")"          { $2 }
+  : Value                  { $1 }
+  | "(" Term ")"           { $2 }
+  | "(" Term "," Tuple ")" { TermNode (tokenPos $1) (TmTuple ($2 : $4)) }
+
+Tuple
+  : Term "," Tuple { $1 : $3 }
+  | Term           { $1 : [] }
 
 Value
   : NameLower { TermNode (fst $1) (TmVarRaw (snd $1)) }
   | "(" ")"   { TermNode (tokenPos $1) (TmConst ConstUnit) }
   | tmfloat   { TermNode (tokenPos $1) (TmConst (ConstFloat ((\(TMFLOAT s) -> s) (tokenDat $1)))) }
   | tmint     { TermNode (tokenPos $1) (TmConst (ConstInt ((\(TMINT s) -> s) (tokenDat $1)))) }
+  | "0"       { TermNode (tokenPos $1) (TmConst (ConstInt 0)) }
   | "+F"      { TermNode (tokenPos $1) (TmConst (ConstOpF PlusOp)) }
   | "+I"      { TermNode (tokenPos $1) (TmConst (ConstOpI PlusOp)) }
   | "-F"      { TermNode (tokenPos $1) (TmConst (ConstOpF MinusOp)) }
@@ -108,6 +141,22 @@ Value
   | "*I"      { TermNode (tokenPos $1) (TmConst (ConstOpI MultOp)) }
   | "/F"      { TermNode (tokenPos $1) (TmConst (ConstOpF DivOp)) }
   | "/I"      { TermNode (tokenPos $1) (TmConst (ConstOpI DivOp)) }
+  | "<F"      { TermNode (tokenPos $1) (TmConst (ConstOpFB LTOp)) }
+  | "<I"      { TermNode (tokenPos $1) (TmConst (ConstOpIB LTOp)) }
+  | ">F"      { TermNode (tokenPos $1) (TmConst (ConstOpFB GTOp)) }
+  | ">I"      { TermNode (tokenPos $1) (TmConst (ConstOpIB GTOp)) }
+  | "<=F"     { TermNode (tokenPos $1) (TmConst (ConstOpFB LEOp)) }
+  | "<=I"     { TermNode (tokenPos $1) (TmConst (ConstOpIB LEOp)) }
+  | ">=F"     { TermNode (tokenPos $1) (TmConst (ConstOpFB GEOp)) }
+  | ">=I"     { TermNode (tokenPos $1) (TmConst (ConstOpIB GEOp)) }
+  | "==F"     { TermNode (tokenPos $1) (TmConst (ConstOpFB EqOp)) }
+  | "==I"     { TermNode (tokenPos $1) (TmConst (ConstOpIB EqOp)) }
+  | "==B"     { TermNode (tokenPos $1) (TmConst (ConstOpB EqOpB)) }
+  | "==U"     { TermNode (tokenPos $1) (TmConst ConstOpU) }
+  | "/=F"     { TermNode (tokenPos $1) (TmConst (ConstOpFB NEOp)) }
+  | "/=I"     { TermNode (tokenPos $1) (TmConst (ConstOpIB NEOp)) }
+  | "/=B"     { TermNode (tokenPos $1) (TmConst (ConstOpB NEOpB)) }
+  | "/=U"     { TermNode (tokenPos $1) (TmConst ConstOpNU) }
   | "&&"      { TermNode (tokenPos $1) (TmConst (ConstOpB AndOp)) }
   | "||"      { TermNode (tokenPos $1) (TmConst (ConstOpB OrOp)) }
   | true      { TermNode (tokenPos $1) (TmConst (ConstBool True)) }
@@ -133,13 +182,17 @@ TypeArrow
   | TypeAtom               { $1 }
 
 TypeAtom
-  : NameUpper             { TyVarRaw (snd $1) }
-  | tyfloat               { TyFloat }
-  | tyint                 { TyInt }
-  | tybool                { TyBool }
-  | tyunit                { TyUnit }
-  | "(" Type ")"          { $2 }
-  | "(" Type "," Type ")" { TyProduct $2 $4 }
+  : NameUpper                  { TyVarRaw (snd $1) }
+  | tyfloat                    { TyFloat }
+  | tyint                      { TyInt }
+  | tybool                     { TyBool }
+  | "(" ")"                    { TyUnit }
+  | "(" Type ")"               { $2 }
+  | "(" Type "," TypeTuple ")" { TyTuple ($2 : $4) }
+
+TypeTuple
+  : Type "," TypeTuple { $1 : $3 }
+  | Type               { $1 : [] }
 
 {
 parseError :: [Token] -> Either String a

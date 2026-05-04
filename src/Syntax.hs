@@ -32,8 +32,7 @@ type SurroundingContext = [SurroundingInfo]
 data SurroundingInfo
   = SType Type
   | STerm TermNode
-  | SFst
-  | SSnd
+  | SProj Int
   deriving (Eq, Show)
 
 data Polarity
@@ -51,6 +50,17 @@ data NumOp
 data BoolOp
   = AndOp
   | OrOp
+  | EqOpB
+  | NEOpB
+  deriving (Eq, Show)
+
+data BoolBoolOp
+  = LTOp
+  | GTOp
+  | LEOp
+  | GEOp
+  | EqOp
+  | NEOp
   deriving (Eq, Show)
 
 data ConstInfo
@@ -65,6 +75,14 @@ data ConstInfo
   | ConstOpB BoolOp
   | ConstOpBool BoolOp Bool
   | ConstNot
+  | ConstOpIB BoolBoolOp
+  | ConstOpIntB BoolBoolOp Int
+  | ConstOpFB BoolBoolOp
+  | ConstOpFloatB BoolBoolOp Float
+  | ConstOpU
+  | ConstOpUnit
+  | ConstOpNU
+  | ConstOpNUnit
   deriving (Eq, Show)
 
 data TermNode = TermNode
@@ -83,10 +101,11 @@ data Term
   | TmTyApp TermNode Type
   | TmAnno TermNode Type
   | TmAbsAnno Name Type TermNode
-  | TmPair TermNode TermNode
-  | TmFst TermNode
-  | TmSnd TermNode
+  | TmTuple [TermNode]
+  | TmProj TermNode Int
   | TmIf TermNode TermNode TermNode
+  | TmAbsUnc [Name] TermNode
+  | TmAbsUncAnno [Name] [Type] TermNode
   | TmError String
   deriving (Eq, Show)
 
@@ -99,22 +118,22 @@ data Type
   | TyVar Index Index Name
   | TyArrow Type Type
   | TyForAll Name Type
-  | TyProduct Type Type
+  | TyTuple [Type]
   | TyError String
   deriving (Show)
 
 instance Eq (Type) where
-  TyInt == TyInt                                 = True
-  TyFloat == TyFloat                             = True
-  TyBool == TyBool                               = True
-  TyUnit == TyUnit                               = True
-  (TyVarRaw x1) == (TyVarRaw x2)                 = x1 == x2
-  (TyVar k1 l1 _) == (TyVar k2 l2 _)             = k1 == k2 && l1 == l2
-  (TyArrow ty11 ty12) == (TyArrow ty21 ty22)     = ty11 == ty21 && ty12 == ty22
-  (TyForAll _ ty11) == (TyForAll _ ty21)         = ty11 == ty21
-  (TyProduct ty11 ty12) == (TyProduct ty21 ty22) = ty11 == ty21 && ty12 == ty22
-  (TyError e1) == (TyError e2)                   = e1 == e2
-  _ == _                                         = False
+  TyInt == TyInt                             = True
+  TyFloat == TyFloat                         = True
+  TyBool == TyBool                           = True
+  TyUnit == TyUnit                           = True
+  (TyVarRaw x1) == (TyVarRaw x2)             = x1 == x2
+  (TyVar k1 l1 _) == (TyVar k2 l2 _)         = k1 == k2 && l1 == l2
+  (TyArrow ty11 ty12) == (TyArrow ty21 ty22) = ty11 == ty21 && ty12 == ty22
+  (TyForAll _ ty11) == (TyForAll _ ty21)     = ty11 == ty21
+  (TyTuple tys1) == (TyTuple tys2)           = tys1 == tys2
+  (TyError e1) == (TyError e2)               = e1 == e2
+  _ == _                                     = False
 
 fromMaybe :: Maybe a -> a
 fromMaybe (Just x) = x
@@ -157,3 +176,25 @@ boolOpToOp op =
   case op of
     AndOp -> (&&)
     OrOp  -> (||)
+    EqOpB -> (==)
+    NEOpB -> (/=)
+
+numBoolOpToOp :: BoolBoolOp -> (Int -> Int -> Bool)
+numBoolOpToOp op =
+  case op of
+    LTOp -> (<)
+    GTOp -> (>)
+    LEOp -> (<=)
+    GEOp -> (>=)
+    EqOp -> (==)
+    NEOp -> (/=)
+
+fracBoolOpToOp :: BoolBoolOp -> (Float -> Float -> Bool)
+fracBoolOpToOp op =
+  case op of
+    LTOp -> (<)
+    GTOp -> (>)
+    LEOp -> (<=)
+    GEOp -> (>=)
+    EqOp -> (==)
+    NEOp -> (/=)
