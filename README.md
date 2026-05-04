@@ -35,6 +35,7 @@ Check the referenced article, the example inputs from ```programs/default_tests.
 | True | The boolean true value, of type Bool |
 | False | The boolean false value, of type Bool |
 | () | The unit, an empty value, of type Unit |
+| c | The character, a letter a digit or a space, of type Char |
 | x | The term variable, of type<br>depending on the environment,<br>and requires a term abstraction to abstract it |
 | \x.t1 | The term abstraction, of type<br>T -> T1, where T is the<br>type given to x and T1 of t1,<br>and x, the name of the term variable<br>must not be capitalized, for otherwise it<br>becomes a type variable abstraction |
 | \x: T.t1 | The annotated term abstraction, of type<br>T -> T1, where T is the T from<br>the annotated T of \x: T.t1,<br>and x, the name of the term variable<br>must not be capitalized, for otherwise it<br>becomes invalid syntax |
@@ -42,8 +43,6 @@ Check the referenced article, the example inputs from ```programs/default_tests.
 | \X.t1 | The type abstraction, of type<br>∀X.T, where T is the type of t1,<br>and X, the name of the abstracted type<br>variable must be capitalized, for otherwise it<br>becomes a term variable abstraction |
 | t1@T | The type application, of type<br>\[X\ -> T]T1, where ∀X.T1 is the type of t1<br>and T is the T from @T |
 | t1 : T | The annotation of type<br>T, should t1's type T1 match it |
-| let x = t2 in t1 | The let-binding, which in this case is<br>syntactic sugar for ((\x.t1) t2) |
-| let x: T = t2 in t1 | The let-binding, which in this case is<br>syntactic sugar for ((\x: T.t1) t2) |
 | opI | An operator for integers<br>of type Int -> Int -> Int |
 | opF | An operator for floats<br>of type Float -> Float -> Float |
 | op | An operator for booleans<br>of type Bool -> Bool -> Bool |
@@ -52,9 +51,24 @@ Check the referenced article, the example inputs from ```programs/default_tests.
 | opᵇ\<b\> | A partially applied plus operator for integers<br>of type Bool -> Bool, which is unachievable<br>without first evaluating, and the b within<br>the angled brackets stands for the first<br>received boolean argument |
 | not | The negation operator for booleans<br>of type Bool->Bool |
 | if t1 then t2 else t3 | The if-then-else statement, where t1 must be<br>of type Bool and the types of t2 and t3,<br>T2 and T3, must be the same |
-| (t1, t2) | The pair, of type (T1, T2), the product type |
-| fst t1 | The fst projection, of type T1, where t1 must be<br>of the type (T1, T2) |
-| fst t1 | The snd projection, of type T2, where t1 must be<br>of the type (T1, T2) |
+| (t1, ..., tn) | The pair, of type (T1, ..., Tn), the tuple type |
+| t.n | The projection, of type Tn, where t must be<br>of the type (T1, ..., Tn, ...) |
+| \(x1, ..., xn).t | Function pattern matching for tuple arguments, of<br>type (T1, ..., Tn) -> T where T is the type of t |
+| \(x1: T1, ..., xn: Tn).t | Annotated function pattern matching for tuple arguments,<br>of type (T1, ..., Tn) -> T where T is the type of t |
+| fix t | The fix operator for recursion, of type T where T->T is the type of t |
+| let x = t2 in t1 | The let-binding, which in this case is<br>syntactic sugar for ((\x.t1) t2) |
+| let x: T = t2 in t1 | The annotated let-binding, which in this case is<br>syntactic sugar for ((\x: T.t1) t2) |
+| let f x1 ... \X1 ... \Xm ... xn = t2 in t1 | The let-binding with additional syntactic sugar for outermost abstractions<br>which can either be type abstractions or term abstractions,<br>the terms can be annotated and f can't be mentioned inside its own (t1) definition |
+| letrec f = t2 in t1 | The letrec-binding, which in this case is<br>syntactic sugar for (\f.t1) (fix (\f.t2)) |
+| letrec f: T = t2 in t1 | The annotated let-binding, which in this case is<br>syntactic sugar for (\f: Int.t1) ((fix (\f: Int.t2)) : Int) |
+| letrec f x1 ... \X1 ... \Xm ... xn = t2 in t1 | The letrec-binding with additional syntactic sugar for outermost abstractions<br>which can either be type abstractions or term abstractions,<br>the terms can be annotated and f can be mentioned<br>inside its own (t1) definition,<br>also note how the type abstractions are the only ones<br>which must have a lambda to their left |
+| \[\] | The empty list, of type forall X.\[X\] |
+| h :: t | The list constructor, where t must be of list type \[T\]<br>and h of type T, which is right associative |
+| \[t1, ..., tn\] | Syntactix sugar for t1 :: ... :: tn :: \[\]<br>which is, therefore, of type List\[T\], where T is<br>the type of t1, ..., tn simultaneously |
+| "c1...cn" | Syntactix sugar for c1 :: ... :: cn :: \[\]<br>such that the c's are of type Char, which is,<br>therefore, of type List\[Char\] |
+| head | The head function, of type forall X.\[X\] -> X<br>which retrieves the head of a given list |
+| tail | The tail function, of type forall X.\[X\] -> \[X\]<br>which retrieves the tail of a given list |
+| empty | The empty function, of type forall X.\[X\] -> Bool which<br> returns True if a given list is empty and False otherwise |
 
 
 The operators are always prefix.
@@ -63,7 +77,11 @@ The operators for numeric types (ints and floats) are +, -, * and /. (plus, minu
 
 The division for ints is floor division. There is no operator overloading, so in order to distinguish between int operators and float operators, a suffix letter must be added as shown in the table: a letter I in front of the operator for making it for integers, and an F letter for making it for floats.
 
-The operators for boolean types (bools) are && and ||. (and, or)
+There are comparison operators <, >, <=, >=, ==, /= for ints, floats, chars.
+
+The operators for boolean types (bools) are ==, /=, && and ||. (and, or)
+
+The operators for unit types are ==, /=.
 
 | Types | Meaning |
 | :---: | :------ |
@@ -71,10 +89,14 @@ The operators for boolean types (bools) are && and ||. (and, or)
 | Float | The float type, which is for floats u |
 | Bool | The boolean type, which is for booleans b |
 | Unit | The unit type, which is for units () |
+| Char | The character type, which is for characters c |
+| Top | The least general type, for any term |
+| Bot | The most general type, for no terms |
 | X | The type variable, which requires a<br>type abstraction to abstract it |
 | T1 -> T2 | The arrow type, which is for<br>term abstractions/functions |
 | ∀X.T1 | The for-all type, which is for<br>type abstractions |
 | (T1, T2) | The product type, which is for pairs<br>and is right associative |
+| \[T\] | The list type, which is for lists of any shared type |
 
 ## REPL's Commands
 
