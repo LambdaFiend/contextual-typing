@@ -104,6 +104,8 @@ The operators for unit types are ==, /=.
 
 Evaluation may not work even if the term is well-typed, since the evaluator is not complex and tries to remove as little type annotations as possible, so that subject reduction is preserved. I might create an erasure function so that full evaluation may occur on-demand. Another reason is that inference allows sometimes for type applications to be omitted, which means there's a syntactic hole.
 
+Annotations are always recommended for the fix operator/letrec. The rules for the fix-operator are in dire need of improvement.
+
 ## REPL's Commands
 
 Most of the commands are simple and related in purpose. The table is dense because there are multiple configurations for the same thing. It was not well thought out, but serves its purpose. I hope this was not too much of a hurdle.
