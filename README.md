@@ -48,7 +48,9 @@ Check the referenced article, the example inputs from ```programs/default_tests.
 | op | An operator for booleans<br>of type Bool -> Bool -> Bool |
 | opⁱ\<i\> | A partially applied operator for integers<br>of type Int -> Int, which is unachievable<br>without first evaluating, and the i within<br>the angled brackets stands for the first<br>received integer argument |
 | opᶠ\<u\> | A partially applied operator for floats<br>of type Float -> Float, which is unachievable<br>without first evaluating, and the u within<br>the angled brackets stands for the first<br>received float argument |
-| opᵇ\<b\> | A partially applied plus operator for integers<br>of type Bool -> Bool, which is unachievable<br>without first evaluating, and the b within<br>the angled brackets stands for the first<br>received boolean argument |
+| opᵇ\<b\> | A partially applied plus operator for booleans<br>of type Bool -> Bool, which is unachievable<br>without first evaluating, and the b within<br>the angled brackets stands for the first<br>received boolean argument |
+| opᶜ\<c\> | A partially applied plus operator for characters<br>of type Char -> Char, which is unachievable<br>without first evaluating, and the c within<br>the angled brackets stands for the first<br>received boolean argument |
+| opᵘ\<u\> | A partially applied plus operator for units<br>of type Unit -> Unit, which is unachievable<br>without first evaluating, and the u within<br>the angled brackets stands for the first<br>received boolean argument |
 | not | The negation operator for booleans<br>of type Bool->Bool |
 | if t1 then t2 else t3 | The if-then-else statement, where t1 must be<br>of type Bool and the types of t2 and t3,<br>T2 and T3, must be the same |
 | (t1, ..., tn) | The pair, of type (T1, ..., Tn), the tuple type |
