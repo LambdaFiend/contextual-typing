@@ -204,6 +204,13 @@ infer tctx sctx t =
         TyArrow ty1' ty2' | ty1' == ty2' -> ty1
         TyArrow ty1' ty2' -> TyError ("| infer AT-Fix2: A ≡ " ++ showType nctx ty1' ++ " B ≡ " ++ showType nctx ty2' ++ " are not the same type")
         ty1' -> TyError ("| infer AT-Fix2: expected the arrow type where the left side is the same as the right side, but instead got A ≡ " ++ showType nctx ty1')
+    {--
+            (STerm t2 : sctx', TmFix t1) ->
+              case infer tctx (STerm (shift' 0 (length tctx) (TermNode (getFI t) (TmTyAbs "X" (TermNode (getFI t) (TmAbsAnno "x" (TyVar 0 1 "X") (TermNode (getFI t) (TmVar 0 2 "x"))))))) : sctx) t1 of
+                TyError e -> TyError ("| infer AT-Fix3: failed to infer e ≡ " ++ showTerm nctx t1 ++ " assuming the surrounding context Σ" ++ showSurroundingContext nctx (STerm (shift' 0 (length tctx) (TermNode (getFI t) (TmTyAbs "X" (TermNode (getFI t) (TmAbsAnno "x" (TyVar 0 1 "X") (TermNode (getFI t) (TmVar 0 2 "x"))))))) : sctx) ++ "\n" ++ e)
+                TyArrow _ ty2' -> ty2'
+                ty1' -> TyError ("| infer AT-Fix3: expected the arrow type where the left side is the same as the right side, but instead got A ≡ " ++ showType nctx ty1')
+    --}
     ([], TmCons t1 t2) ->
       case infer tctx [] t1 of
         TyError e -> TyError ("| infer AT-List1: failed to infer e1 ≡ " ++ showTerm nctx t1 ++ " assuming the empty surrounding context Σ" ++ "\n" ++ e)
@@ -277,8 +284,8 @@ subtypeInfer tctx stctx ty sctx =
     (TyArrow ty1 ty2, (STerm t1 : sctx'))
       | isClosedType stctx ty1 ->
           let sty1 = substCtxToTy stctx ty1
-           in case infer tctx [SType (substCtxToTy stctx ty1)] t1 of
-                TyError e -> (Nothing, TyError ("| subtype infer AS-Trm-C: failed to infer the term e ≡ " ++ showTerm ntctx t1 ++ " assuming [Δ]A ≡ " ++ showType nctx sty1 ++ " as the surrounding context Σ" ++ "\n" ++ e))
+           in case infer tctx [SType sty1] t1 of
+                TyError e -> (Nothing, TyError ("| subtype infer AS-Trm-C: failed to infer the term e ≡ " ++ showTerm ntctx t1 ++ " assuming [Δ]A ≡ " ++ showType ntctx sty1 ++ " as the surrounding context Σ" ++ "\n" ++ e))
                 _ ->
                   case subtypeInfer tctx stctx ty2 sctx' of
                     (_, TyError e) -> (Nothing, TyError ("| subtype infer AS-Trm-C: failed to subtype infer B ≡ " ++ showType nctx ty2 ++ " assuming the surrounding context Σ ≡ " ++ showSurroundingContext ntctx sctx ++ "\n" ++ e))
@@ -447,7 +454,7 @@ subtypeInferUncAux tctx stctx ty t =
     then
       let sTy = substCtxToTy stctx ty
        in case infer tctx [SType sTy] t of
-            TyError e -> (TyError ("| subtype infer uncurried auxiliary judgement Closed: failed to infer for the term e ≡ " ++ showTerm nctx t ++ " assuming the type A ≡ " ++ showType nctx sTy ++ " as the surrounding context Σ" ++ "\n" ++ e), Nothing)
+            TyError e -> (TyError ("| subtype infer uncurried auxiliary judgement Closed: failed to infer for the term e ≡ " ++ showTerm nctx t ++ " assuming the type [Δ]A ≡ " ++ showType ntctx sTy ++ " as the surrounding context Σ" ++ "\n" ++ e), Nothing)
             _ -> (sTy, Just stctx)
     else case infer tctx [] t of
       TyError e -> (TyError ("| subtype infer uncurried auxiliary judgement Open: failed to infer for the term e ≡ " ++ showTerm nctx t ++ " assuming the empty surrounding context Σ" ++ "\n" ++ e), Nothing)
