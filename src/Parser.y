@@ -12,77 +12,78 @@ import Syntax
 
 %token
 
-"λ"     { Token pos LAMBDA }
-"∀"     { Token pos FORALL }
-"→"     { Token pos ARROW }
-"@"     { Token pos APPLY }
-","     { Token pos COMMA }
-"."     { Token pos DOT }
-"::"    { Token pos DOUBLECOLON }
-":"     { Token pos COLON }
-"("     { Token pos LPAREN }
-")"     { Token pos RPAREN }
-"["     { Token pos LSBRACK }
-"]"     { Token pos RSBRACK }
-"="     { Token pos ASSIGN }
-"&&"    { Token pos AND }
-"||"    { Token pos OR }
-"not"   { Token pos NOT }
-"fix"   { Token pos FIX }
-"+F"    { Token pos PLUSFLOAT }
-"+I"    { Token pos PLUSINT }
-"-F"    { Token pos MINUSFLOAT }
-"-I"    { Token pos MINUSINT }
-"*F"    { Token pos MULTFLOAT }
-"*I"    { Token pos MULTINT }
-"/F"    { Token pos DIVFLOAT }
-"/I"    { Token pos DIVINT }
-let     { Token pos LET }
-letrec  { Token pos LETREC }
-in      { Token pos IN }
-tyfloat { Token pos TYFLOAT }
-tyint   { Token pos TYINT }
-tybool  { Token pos TYBOOL }
-tytop   { Token pos TYTOP }
-tybot   { Token pos TYBOT }
-tychar  { Token pos TYCHAR }
-true    { Token pos TRUE }
-false   { Token pos FALSE }
-if      { Token pos IF }
-then    { Token pos THEN }
-else    { Token pos ELSE }
-tmfloat { Token pos (TMFLOAT u) }
-tmint   { Token pos (TMINT n) }
-tmchar  { Token pos (TMCHAR c) }
-"<F"    { Token pos LTFLOAT }
-"<I"    { Token pos LTINT }
-"<C"    { Token pos LTCHAR }
-">F"    { Token pos GTFLOAT }
-">I"    { Token pos GTINT }
-">C"    { Token pos GTCHAR }
-"<=F"	{ Token pos LEFLOAT }
-"<=I"	{ Token pos LEINT }
-"<=C"	{ Token pos LECHAR }
-">=F"	{ Token pos GEFLOAT }
-">=I"	{ Token pos GEINT }
-">=C"	{ Token pos GECHAR }
-"==F"   { Token pos EQFLOAT }
-"==I"   { Token pos EQINT }
-"==B"   { Token pos EQBOOL }
-"==U"   { Token pos EQUNIT }
-"==C"   { Token pos EQCHAR }
-"/=F"   { Token pos NEFLOAT }
-"/=I"   { Token pos NEINT }
-"/=B"   { Token pos NEBOOL }
-"/=U"   { Token pos NEUNIT }
-"/=C"   { Token pos NECHAR }
-"head"  { Token pos HEAD }
-"tail"  { Token pos TAIL }
-"empty" { Token pos EMPTY }
-"0"     { Token pos ZERO }
-quote   { Token pos (QUOTE s) }
-idLower { Token pos (IDLower s) }
-idUpper { Token pos (IDUpper s) }
+"λ"         { Token pos LAMBDA }
+"∀"         { Token pos FORALL }
+"→"         { Token pos ARROW }
+"@"         { Token pos APPLY }
+","         { Token pos COMMA }
+"."         { Token pos DOT }
+"::"        { Token pos DOUBLECOLON }
+":"         { Token pos COLON }
+"("         { Token pos LPAREN }
+")"         { Token pos RPAREN }
+"["         { Token pos LSBRACK }
+"]"         { Token pos RSBRACK }
+"="         { Token pos ASSIGN }
+"&&"        { Token pos AND }
+"||"        { Token pos OR }
+"not"       { Token pos NOT }
+"fix"       { Token pos FIX }
+"+F"        { Token pos PLUSFLOAT }
+"+I"        { Token pos PLUSINT }
+"-F"        { Token pos MINUSFLOAT }
+"-I"        { Token pos MINUSINT }
+"*F"        { Token pos MULTFLOAT }
+"*I"        { Token pos MULTINT }
+"/F"        { Token pos DIVFLOAT }
+"/I"        { Token pos DIVINT }
+let         { Token pos LET }
+letrec      { Token pos LETREC }
+in          { Token pos IN }
+tyfloat     { Token pos TYFLOAT }
+tyint       { Token pos TYINT }
+tybool      { Token pos TYBOOL }
+tytop       { Token pos TYTOP }
+tybot       { Token pos TYBOT }
+tychar      { Token pos TYCHAR }
+true        { Token pos TRUE }
+false       { Token pos FALSE }
+if          { Token pos IF }
+then        { Token pos THEN }
+else        { Token pos ELSE }
+tmfloat     { Token pos (TMFLOAT u) }
+tmint       { Token pos (TMINT n) }
+tmchar      { Token pos (TMCHAR c) }
+"<F"        { Token pos LTFLOAT }
+"<I"        { Token pos LTINT }
+"<C"        { Token pos LTCHAR }
+">F"        { Token pos GTFLOAT }
+">I"        { Token pos GTINT }
+">C"        { Token pos GTCHAR }
+"<=F"	    { Token pos LEFLOAT }
+"<=I"	    { Token pos LEINT }
+"<=C"	    { Token pos LECHAR }
+">=F"	    { Token pos GEFLOAT }
+">=I"	    { Token pos GEINT }
+">=C"	    { Token pos GECHAR }
+"==F"       { Token pos EQFLOAT }
+"==I"       { Token pos EQINT }
+"==B"       { Token pos EQBOOL }
+"==U"       { Token pos EQUNIT }
+"==C"       { Token pos EQCHAR }
+"/=F"       { Token pos NEFLOAT }
+"/=I"       { Token pos NEINT }
+"/=B"       { Token pos NEBOOL }
+"/=U"       { Token pos NEUNIT }
+"/=C"       { Token pos NECHAR }
+"undefined" { Token pos UNDEFINED }
+"head"      { Token pos HEAD }
+"tail"      { Token pos TAIL }
+"empty"     { Token pos EMPTY }
+"0"         { Token pos ZERO }
+quote       { Token pos (QUOTE s) }
+idLower     { Token pos (IDLower s) }
+idUpper     { Token pos (IDUpper s) }
 
 %%
 
@@ -180,51 +181,52 @@ Tuple
   | Term           { $1 : [] }
 
 Value
-  : NameLower { TermNode (fst $1) (TmVarRaw (snd $1)) }
-  | "empty"   { TermNode (tokenPos $1) (TmConst ConstEmpty) }
-  | "head"    { TermNode (tokenPos $1) (TmConst ConstHead) }
-  | "tail"    { TermNode (tokenPos $1) (TmConst ConstTail) }
-  | "(" ")"   { TermNode (tokenPos $1) (TmConst ConstUnit) }
-  | "[" "]"   { TermNode (tokenPos $1) TmNil }
-  | tmfloat   { TermNode (tokenPos $1) (TmConst (ConstFloat ((\(TMFLOAT s) -> s) (tokenDat $1)))) }
-  | tmint     { TermNode (tokenPos $1) (TmConst (ConstInt ((\(TMINT s) -> s) (tokenDat $1)))) }
-  | tmchar    { TermNode (tokenPos $1) (TmConst (ConstChar ((\(TMCHAR s) -> s) (tokenDat $1)))) }
-  | "0"       { TermNode (tokenPos $1) (TmConst (ConstInt 0)) }
-  | "+F"      { TermNode (tokenPos $1) (TmConst (ConstOpF PlusOp)) }
-  | "+I"      { TermNode (tokenPos $1) (TmConst (ConstOpI PlusOp)) }
-  | "-F"      { TermNode (tokenPos $1) (TmConst (ConstOpF MinusOp)) }
-  | "-I"      { TermNode (tokenPos $1) (TmConst (ConstOpI MinusOp)) }
-  | "*F"      { TermNode (tokenPos $1) (TmConst (ConstOpF MultOp)) }
-  | "*I"      { TermNode (tokenPos $1) (TmConst (ConstOpI MultOp)) }
-  | "/F"      { TermNode (tokenPos $1) (TmConst (ConstOpF DivOp)) }
-  | "/I"      { TermNode (tokenPos $1) (TmConst (ConstOpI DivOp)) }
-  | "<F"      { TermNode (tokenPos $1) (TmConst (ConstOpFB LTOp)) }
-  | "<I"      { TermNode (tokenPos $1) (TmConst (ConstOpIB LTOp)) }
-  | "<C"      { TermNode (tokenPos $1) (TmConst (ConstOpCB LTOp)) }
-  | ">F"      { TermNode (tokenPos $1) (TmConst (ConstOpFB GTOp)) }
-  | ">I"      { TermNode (tokenPos $1) (TmConst (ConstOpIB GTOp)) }
-  | ">C"      { TermNode (tokenPos $1) (TmConst (ConstOpCB GTOp)) }
-  | "<=F"     { TermNode (tokenPos $1) (TmConst (ConstOpFB LEOp)) }
-  | "<=I"     { TermNode (tokenPos $1) (TmConst (ConstOpIB LEOp)) }
-  | "<=C"     { TermNode (tokenPos $1) (TmConst (ConstOpCB LEOp)) }
-  | ">=F"     { TermNode (tokenPos $1) (TmConst (ConstOpFB GEOp)) }
-  | ">=I"     { TermNode (tokenPos $1) (TmConst (ConstOpIB GEOp)) }
-  | ">=C"     { TermNode (tokenPos $1) (TmConst (ConstOpCB GEOp)) }
-  | "==F"     { TermNode (tokenPos $1) (TmConst (ConstOpFB EqOp)) }
-  | "==I"     { TermNode (tokenPos $1) (TmConst (ConstOpIB EqOp)) }
-  | "==B"     { TermNode (tokenPos $1) (TmConst (ConstOpB EqOpB)) }
-  | "==U"     { TermNode (tokenPos $1) (TmConst ConstOpU) }
-  | "==C"     { TermNode (tokenPos $1) (TmConst (ConstOpCB EqOp)) }
-  | "/=F"     { TermNode (tokenPos $1) (TmConst (ConstOpFB NEOp)) }
-  | "/=I"     { TermNode (tokenPos $1) (TmConst (ConstOpIB NEOp)) }
-  | "/=B"     { TermNode (tokenPos $1) (TmConst (ConstOpB NEOpB)) }
-  | "/=U"     { TermNode (tokenPos $1) (TmConst ConstOpNU) }
-  | "/=C"     { TermNode (tokenPos $1) (TmConst (ConstOpCB NEOp)) }
-  | "&&"      { TermNode (tokenPos $1) (TmConst (ConstOpB AndOp)) }
-  | "||"      { TermNode (tokenPos $1) (TmConst (ConstOpB OrOp)) }
-  | true      { TermNode (tokenPos $1) (TmConst (ConstBool True)) }
-  | false     { TermNode (tokenPos $1) (TmConst (ConstBool False)) }
-  | "not"     { TermNode (tokenPos $1) (TmConst ConstNot) }
+  : NameLower   { TermNode (fst $1) (TmVarRaw (snd $1)) }
+  | "undefined" { TermNode (tokenPos $1) TmUndefined }
+  | "empty"     { TermNode (tokenPos $1) (TmConst ConstEmpty) }
+  | "head"      { TermNode (tokenPos $1) (TmConst ConstHead) }
+  | "tail"      { TermNode (tokenPos $1) (TmConst ConstTail) }
+  | "(" ")"     { TermNode (tokenPos $1) (TmConst ConstUnit) }
+  | "[" "]"     { TermNode (tokenPos $1) TmNil }
+  | tmfloat     { TermNode (tokenPos $1) (TmConst (ConstFloat ((\(TMFLOAT s) -> s) (tokenDat $1)))) }
+  | tmint       { TermNode (tokenPos $1) (TmConst (ConstInt ((\(TMINT s) -> s) (tokenDat $1)))) }
+  | tmchar      { TermNode (tokenPos $1) (TmConst (ConstChar ((\(TMCHAR s) -> s) (tokenDat $1)))) }
+  | "0"         { TermNode (tokenPos $1) (TmConst (ConstInt 0)) }
+  | "+F"        { TermNode (tokenPos $1) (TmConst (ConstOpF PlusOp)) }
+  | "+I"        { TermNode (tokenPos $1) (TmConst (ConstOpI PlusOp)) }
+  | "-F"        { TermNode (tokenPos $1) (TmConst (ConstOpF MinusOp)) }
+  | "-I"        { TermNode (tokenPos $1) (TmConst (ConstOpI MinusOp)) }
+  | "*F"        { TermNode (tokenPos $1) (TmConst (ConstOpF MultOp)) }
+  | "*I"        { TermNode (tokenPos $1) (TmConst (ConstOpI MultOp)) }
+  | "/F"        { TermNode (tokenPos $1) (TmConst (ConstOpF DivOp)) }
+  | "/I"        { TermNode (tokenPos $1) (TmConst (ConstOpI DivOp)) }
+  | "<F"        { TermNode (tokenPos $1) (TmConst (ConstOpFB LTOp)) }
+  | "<I"        { TermNode (tokenPos $1) (TmConst (ConstOpIB LTOp)) }
+  | "<C"        { TermNode (tokenPos $1) (TmConst (ConstOpCB LTOp)) }
+  | ">F"        { TermNode (tokenPos $1) (TmConst (ConstOpFB GTOp)) }
+  | ">I"        { TermNode (tokenPos $1) (TmConst (ConstOpIB GTOp)) }
+  | ">C"        { TermNode (tokenPos $1) (TmConst (ConstOpCB GTOp)) }
+  | "<=F"       { TermNode (tokenPos $1) (TmConst (ConstOpFB LEOp)) }
+  | "<=I"       { TermNode (tokenPos $1) (TmConst (ConstOpIB LEOp)) }
+  | "<=C"       { TermNode (tokenPos $1) (TmConst (ConstOpCB LEOp)) }
+  | ">=F"       { TermNode (tokenPos $1) (TmConst (ConstOpFB GEOp)) }
+  | ">=I"       { TermNode (tokenPos $1) (TmConst (ConstOpIB GEOp)) }
+  | ">=C"       { TermNode (tokenPos $1) (TmConst (ConstOpCB GEOp)) }
+  | "==F"       { TermNode (tokenPos $1) (TmConst (ConstOpFB EqOp)) }
+  | "==I"       { TermNode (tokenPos $1) (TmConst (ConstOpIB EqOp)) }
+  | "==B"       { TermNode (tokenPos $1) (TmConst (ConstOpB EqOpB)) }
+  | "==U"       { TermNode (tokenPos $1) (TmConst ConstOpU) }
+  | "==C"       { TermNode (tokenPos $1) (TmConst (ConstOpCB EqOp)) }
+  | "/=F"       { TermNode (tokenPos $1) (TmConst (ConstOpFB NEOp)) }
+  | "/=I"       { TermNode (tokenPos $1) (TmConst (ConstOpIB NEOp)) }
+  | "/=B"       { TermNode (tokenPos $1) (TmConst (ConstOpB NEOpB)) }
+  | "/=U"       { TermNode (tokenPos $1) (TmConst ConstOpNU) }
+  | "/=C"       { TermNode (tokenPos $1) (TmConst (ConstOpCB NEOp)) }
+  | "&&"        { TermNode (tokenPos $1) (TmConst (ConstOpB AndOp)) }
+  | "||"        { TermNode (tokenPos $1) (TmConst (ConstOpB OrOp)) }
+  | true        { TermNode (tokenPos $1) (TmConst (ConstBool True)) }
+  | false       { TermNode (tokenPos $1) (TmConst (ConstBool False)) }
+  | "not"       { TermNode (tokenPos $1) (TmConst ConstNot) }
 
 NameLower : idLower { (tokenPos $1, (\(IDLower s) -> s) $ tokenDat $1) }
 
@@ -262,9 +264,13 @@ TypeTuple
   | Type               { $1 : [] }
 
 {
+stringToCons' :: String -> AlexPosn -> TermNode
+stringToCons' [] pos = TermNode pos TmNil
+stringToCons' (c:cs) pos = TermNode pos (TmCons (TermNode pos (TmConst (ConstChar c))) (stringToCons' cs pos))
+
 stringToCons :: String -> AlexPosn -> TermNode
 stringToCons [] pos = TermNode pos TmNil
-stringToCons (c:cs) pos = TermNode pos (TmCons (TermNode pos (TmConst (ConstChar c))) (stringToCons cs pos))
+stringToCons cs pos = let cs' = drop 1 $ reverse $ drop 1 cs in stringToCons' cs' pos
 
 parseError :: [Token] -> Either String a
 parseError [] = Left ("Parsing error near the end of the file")

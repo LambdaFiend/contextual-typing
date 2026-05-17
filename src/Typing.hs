@@ -12,6 +12,7 @@ infer :: TypingEnvironment -> SurroundingContext -> TermNode -> Type
 infer tctx sctx t =
   case (sctx, getTm t) of
     ([], TmConst c) -> tyShift 0 (length tctx) (constToType c)
+    ([], TmUndefined) -> TyBot
     ([], TmVar k _ x)
       | k < length tctx ->
           case tctx !? k of
@@ -302,7 +303,7 @@ subtypeInfer tctx stctx ty sctx =
                   case subtypeInfer tctx stctx' ty2 sctx' of
                     (_, TyError e) -> (Nothing, TyError ("| subtype infer AS-Trm-O: failed to subtype infer the type B ≡ " ++ showType nctx ty2 ++ " assuming the subtyping environment Δ' ≡ " ++ showSubtypingEnvironment ntctx stctx' ++ " and the surrounding context Σ ≡ " ++ showSurroundingContext ntctx sctx' ++ "\n" ++ e))
                     (Just stctx'', ty4) -> (Just stctx'', TyArrow ty3 ty4)
-                    (Nothing, _) -> (Nothing, TyError ("| subtype infer AS-Trm-C: expected subtyping environment Δ'' but got nothing"))
+                    (Nothing, _) -> (Nothing, TyError ("| subtype infer AS-Trm-O: expected subtyping environment Δ'' but got nothing"))
                 (_, Just e) -> (Nothing, TyError ("| subtype infer AS-Trm-O: failed to subtype check the type C ≡ " ++ showType nctx ty3 ++ " assuming the surrounding context Σ as the type A ≡ " ++ showType nctx ty1 ++ "\n" ++ e))
     (TyVar k _ x, _)
       | k < length stctx && (case stctx !? k of Just s -> isSolved s; Nothing -> False) ->
@@ -394,11 +395,11 @@ subtypeCheck tctx stctx ty1 pol ty2 =
                 (Just stctx', Nothing) -> (Just stctx', Nothing)
                 (Nothing, _) -> (Nothing, Just ("| subtype check AS-SVar-L: expected subtyping environment Δ but got nothing"))
             Nothing -> (Nothing, Just ("| subtype check AS-SVar-L: there's not solution for α ≡ " ++ x))
-    (_, PositivePolarity, TyVar k _ x)
+    (_, NegativePolarity, TyVar k _ x)
       | k < length stctx && (case stctx !? k of Just s -> isSolved s; Nothing -> False) ->
           case findSolution stctx x k of
             Just ty2' ->
-              case subtypeCheck tctx stctx (tyShift 0 (length stctx) ty1) pol ty2' of
+              case subtypeCheck tctx stctx ty1 pol (tyShift 0 (length stctx) ty2') of
                 (_, Just e) -> (Nothing, Just ("| subtype check AS-SVar-R: failed to subtype check the type B ≡ " ++ showType nctx ty1 ++ " against α's solution type A ≡ " ++ showType nctx (tyShift 0 (length stctx) ty2') ++ "\n" ++ e))
                 (Just stctx', Nothing) -> (Just stctx', Nothing)
                 (Nothing, _) -> (Nothing, Just ("| subtype check AS-SVar-R: expected subtyping environment Δ but got nothing"))
@@ -459,7 +460,7 @@ subtypeInferUncAux tctx stctx ty t =
     else case infer tctx [] t of
       TyError e -> (TyError ("| subtype infer uncurried auxiliary judgement Open: failed to infer for the term e ≡ " ++ showTerm nctx t ++ " assuming the empty surrounding context Σ" ++ "\n" ++ e), Nothing)
       ty1 ->
-        case subtypeCheck tctx stctx ty1 NegativePolarity ty of
+        case subtypeCheck tctx stctx (tyShift 0 (length stctx) ty1) NegativePolarity ty of
           (_, Just e) -> (TyError ("| subtype infer uncurried auxiliary judgement Open: failed to subtype check for the type B ≡ " ++ showType nctx ty1 ++ " against the type A ≡ " ++ showType nctx ty ++ " assuming negative polarity" ++ "\n" ++ e), Nothing)
           (Just stctx', Nothing) -> (ty1, Just stctx')
           (Nothing, _) -> (TyError ("| subtype infer uncurried auxiliary judgement Open: expected Δ' but got nothing"), Nothing)

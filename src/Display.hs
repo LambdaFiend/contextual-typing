@@ -42,6 +42,8 @@ showTerm ctx t =
        in "(" ++ "λ" ++ x' ++ ": " ++ showType ctx ty1 ++ "." ++ showTerm (x' : ctx) t1 ++ ")"
     TmTuple (t1 : ts) -> "(" ++ foldr (\x y -> y ++ ", " ++ x) (showTerm ctx t1) (reverse (map (showTerm ctx) ts)) ++ ")"
     TmTuple [] -> "#TmTuple: bad tuple length#"
+    TmProj (TermNode _ (TmConst (ConstInt k))) n -> "(" ++ "(" ++ show k ++ ")" ++ "." ++ show n ++ ")"
+    TmProj (TermNode _ (TmConst (ConstFloat u))) n -> "(" ++ "(" ++ show u ++ ")" ++ "." ++ show n ++ ")"
     TmProj t1 n -> "(" ++ showTerm ctx t1 ++ "." ++ show n ++ ")"
     TmIf t1 t2 t3 -> "(" ++ "if " ++ showTerm ctx t1 ++ " then " ++ showTerm ctx t2 ++ " else " ++ showTerm ctx t3 ++ ")"
     TmAbsUnc xs t1 ->
@@ -57,30 +59,31 @@ showTerm ctx t =
             then
               let r = map (\x -> case getTm x of TmConst (ConstChar c) -> c; _ -> '§') fcons
                in case find ((==) '§') r of
-                    Nothing -> r
+                    Nothing -> show r
                     Just _ -> "#TmList: unexpected string's (list of characters) contents#"
             else case showSugarList ctx t2 of
               Left xs ->
                 case reverse xs of
-                  (s : xs') -> foldr (\x y -> "(" ++ x ++ " :: " ++ y ++ ")") s (showTerm'' ctx t1 : reverse xs')
+                  (s : xs') -> foldr (\x y -> "(" ++ x ++ " :: " ++ y ++ ")") s (showTerm ctx t1 : reverse xs')
                   _ -> "#TmList: unexpected list size#"
               Right xs -> "[" ++ foldr (\x y -> y ++ ", " ++ x) (showTerm'' ctx t1) (reverse xs) ++ "]"
     TmNil -> "[]"
+    TmUndefined -> "undefined"
     TmError e -> "#" ++ e ++ "#"
 
 getFullCons :: TermNode -> [TermNode]
 getFullCons t =
   case getTm t of
     TmCons t1 t2 -> t1 : getFullCons t2
-    TmNil        -> []
-    _            -> t : []
+    TmNil -> []
+    _ -> t : TermNode noPos (TmError "#getFullCons: bad list end#") : []
 
 showSugarList :: NameContext -> TermNode -> Either [String] [String]
 showSugarList ctx t =
   case getTm t of
     TmCons t1 t2 ->
       case showSugarList ctx t2 of
-        Left xs  -> Left (showTerm'' ctx t1 : xs)
+        Left xs  -> Left (showTerm ctx t1 : xs)
         Right xs -> Right (showTerm'' ctx t1 : xs)
     TmNil -> Right []
     _ -> Left [showTerm ctx t]
@@ -195,11 +198,6 @@ removeOuterParens xs
   where
     getHead = (\ws -> case ws of (y : _) -> y; _ -> '\0')
     getTail = (\ws -> case ws of (_ : ys) -> ys; _ -> [])
-
-fixName :: NameContext -> Name -> Name
-fixName ctx x
-  | (length $ filter ((==) x) ctx) < 1 = x
-  | otherwise = fixName ctx (x ++ "\'")
 
 getNameFromContext :: NameContext -> Index -> Name -> Name
 getNameFromContext ctx ind x

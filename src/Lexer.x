@@ -61,6 +61,7 @@ $white+                          ;
 "==U"                            { \pos _ -> Token pos EQUNIT }
 "==C"                            { \pos _ -> Token pos EQCHAR }
 "="                              { \pos _ -> Token pos ASSIGN }
+"undefined"                      { \pos _ -> Token pos UNDEFINED }
 "let"                            { \pos _ -> Token pos LET }
 "letrec"                         { \pos _ -> Token pos LETREC }
 "in"                             { \pos _ -> Token pos IN }
@@ -82,8 +83,8 @@ $white+                          ;
 "0"(".")($digit)*                { \pos s -> Token pos (TMFLOAT (read s)) }
 ($digit1)($digit)*               { \pos s -> Token pos (TMINT (read s)) }
 "0"                              { \pos _ -> Token pos ZERO }
-($lower)($digit|$lower|\')*      { \pos s -> Token pos (IDLower s) }
-($upper)($digit|$lower|\')*      { \pos s -> Token pos (IDUpper s) }
+($lower)($digit|$alpha|\')*      { \pos s -> Token pos (IDLower s) }
+($upper)($digit|$alpha|\')*      { \pos s -> Token pos (IDUpper s) }
 "."                              { \pos _ -> Token pos DOT }
 \'$text\'                        { \pos s -> case s of ('\'':x:'\'':[]) -> Token pos (TMCHAR x); _ -> Token pos (ERROR ("Lexing error, bad char term: " ++ s)) }
 \"($text*)\"                     { \pos s -> Token pos (QUOTE s) }
@@ -145,6 +146,7 @@ data TokenData
   | EQUNIT
   | EQCHAR
   | EMPTY
+  | UNDEFINED
   | LET
   | LETREC
   | IN

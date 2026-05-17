@@ -26,6 +26,7 @@ traverseDownTm f t = TermNode fi $
     TmFix t1 -> TmFix (traverseTm' t1)
     TmCons t1 t2 -> TmCons (traverseTm' t1) (traverseTm' t2)
     TmNil -> tm
+    TmUndefined -> tm
     TmError _ -> tm
   where
     tm = getTm t'
@@ -211,6 +212,42 @@ findSolution ctx x k =
     Just (SolvedTyVar x' ty') | x == x' -> Just ty'
     _                                   -> Nothing
 
+collectTyVars :: Type -> TypingEnvironment
+collectTyVars ty =
+  case ty of
+    TyInt           -> []
+    TyFloat         -> []
+    TyBool          -> []
+    TyUnit          -> []
+    TyTop           -> []
+    TyBot           -> []
+    TyChar          -> []
+    TyVarRaw _      -> []
+    TyVar _ _ _     -> []
+    TyForAll x ty1  -> [TyVarBind x] `union` collectTyVars ty1
+    TyArrow ty1 ty2 -> collectTyVars ty1 `union` collectTyVars ty2
+    TyTuple tys     -> foldl union [] (map collectTyVars tys)
+    TyList ty1      -> collectTyVars ty1
+    TyError _       -> []
+
+fixTyNames :: NameContext -> Type -> Type
+fixTyNames ctx ty =
+  case ty of
+    TyInt           -> ty
+    TyFloat         -> ty
+    TyBool          -> ty
+    TyUnit          -> ty
+    TyTop           -> ty
+    TyBot           -> ty
+    TyChar          -> ty
+    TyVarRaw x      -> TyVarRaw (fixName ctx x)
+    TyVar k l x     -> TyVar k l (fixName ctx x)
+    TyForAll x ty1  -> TyForAll (fixName ctx x) (fixTyNames ctx ty1)
+    TyArrow ty1 ty2 -> TyArrow (fixTyNames ctx ty1) (fixTyNames ctx ty2)
+    TyTuple tys     -> TyTuple (map (fixTyNames ctx) tys)
+    TyList ty1      -> TyList (fixTyNames ctx ty1)
+    TyError _       -> ty
+
 substCtxToTy :: SubtypingEnvironment -> Type -> Type
 substCtxToTy ctx ty =
   case ty of
@@ -224,7 +261,7 @@ substCtxToTy ctx ty =
     TyVarRaw _ -> ty
     TyVar k _ x ->
       case findSolution ctx x k of
-        Just ty' -> (tyShift 0 k ty')
+        Just ty' -> ty'
         Nothing  -> ty
     TyForAll x ty1 -> TyForAll x (substCtxToTy (UniversalTyVar x : ctx) ty1)
     TyArrow ty1 ty2 -> TyArrow (substCtxToTy ctx ty1) (substCtxToTy ctx ty2)
@@ -322,4 +359,5 @@ findTermErrors t =
     TmFix t1 -> findTermErrors t1
     TmCons t1 t2 -> findTermErrors t1 ++ findTermErrors t2
     TmNil -> []
+    TmUndefined -> []
     TmError e -> [e]

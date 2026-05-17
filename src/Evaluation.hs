@@ -158,6 +158,7 @@ eval1 t =
         | not (isVal t2) ->
             let result = eval1 t2
              in checkError result (TmCons v1 result)
+      TmUndefined -> TmError ("Can't evaluate undefined" ++ showFileInfo (getFI t))
       _ -> TmError ("No rule applies" ++ showFileInfo (getFI t))
   where
     checkError :: TermNode -> Term -> Term

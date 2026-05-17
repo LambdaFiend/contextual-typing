@@ -95,7 +95,7 @@ data TermNode = TermNode
   { getFI :: FileInfo,
     getTm :: Term
   }
-  deriving (Eq, Show)
+  deriving (Show)
 
 data Term
   = TmConst ConstInfo
@@ -115,6 +115,7 @@ data Term
   | TmFix TermNode
   | TmCons TermNode TermNode
   | TmNil
+  | TmUndefined
   | TmError String
   deriving (Eq, Show)
 
@@ -152,12 +153,20 @@ instance Eq (Type) where
   (TyError e1) == (TyError e2)               = e1 == e2
   _ == _                                     = False
 
+instance Eq (TermNode) where
+  (TermNode _ tm1) == (TermNode _ tm2) = tm1 == tm2
+
 fromMaybe :: Maybe a -> a
 fromMaybe (Just x) = x
 fromMaybe Nothing  = error "fromMaybe, in Syntax.hs"
 
 noPos :: FileInfo
 noPos = AlexPn (-1) (-1) (-1)
+
+fixName :: NameContext -> Name -> Name
+fixName ctx x
+  | (length $ filter ((==) x) ctx) < 1 = x
+  | otherwise = fixName ctx (x ++ "\'")
 
 isGenericConsumer :: TermNode -> Bool
 isGenericConsumer t =
@@ -168,6 +177,7 @@ isGenericConsumer t =
     TmTyAbs _ _ -> True
     TmFix _     -> True
     TmNil       -> True
+    TmUndefined -> True
     _           -> False
 
 negatePolarity :: Polarity -> Polarity
