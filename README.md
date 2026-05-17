@@ -71,7 +71,7 @@ Check the referenced article, the example inputs from ```programs/default_tests.
 | head | The head function, of type forall X.\[X\] -> X<br>which retrieves the head of a given list |
 | tail | The tail function, of type forall X.\[X\] -> \[X\]<br>which retrieves the tail of a given list |
 | empty | The empty function, of type forall X.\[X\] -> Bool which<br> returns True if a given list is empty and False otherwise |
-
+| undefined | The undefined term, of type Bot, which<br>throws an error on evaluation but<br>succesfully types under any context |
 
 The operators are always prefix.
 
