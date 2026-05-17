@@ -4,10 +4,266 @@ example2 := (\id.id @Int 1) ((\X.\x.x) : forall X.X -> X)
 
 example3 := (\id.id @(forall Y.Y->Y)) ((\X.\x.x) : forall X.X -> X)
 
-reverseExample1 := letrec rev: forall X.[X]->[X]->[X] \X xs acc = if empty xs then acc else (rev@X (tail xs) (head xs :: acc)) in let reverse \X xs:[X] = rev @X xs [] in reverse @Int [1, 2, 3]
+undefinedExample1 := (\X.\x : X.undefined)
 
-reverseExample2 := letrec rev: forall X.[X]->[X]->[X] \X xs acc = if empty xs then acc else (rev (tail xs) (head xs :: acc)) in let reverse \X xs:[X] = rev xs [] in reverse [1, 2, 3]
+undefinedExample2 := (\x.x) undefined
+
+undefinedExample3 := (\x.3) undefined
+
+undefinedExample4 := (\x : Int.undefined) 3
+
+undefinedExample5 := (\x.undefined) 3
+
+undefinedExample6 := undefined : Bot
+
+undefinedExample6 := undefined : Top
+
+reverseExample1 :=
+  letrec rev : forall X.[X]->[X]->[X]
+    \X xs acc =
+      if empty xs
+        then acc
+        else (rev@X (tail xs) (head xs :: acc))
+  in let reverse \X xs : [X] = rev @X xs []
+      in reverse @Int [1, 2, 3]
+
+reverseExample2 :=
+  letrec rev : forall X.[X]->[X]->[X]
+  \X xs acc =
+    if empty xs
+      then acc
+      else (rev (tail xs) (head xs :: acc))
+  in let reverse \X xs : [X] = rev xs []
+      in reverse [1, 2, 3]
 
 uncurriedExample1 := \(x: Int, y: Int).+I x y
 
 uncurriedExample2 := (\(x, y).(y, x)) (1, 2)
+
+map :=
+  (fix (\map.\X.\Y.\f.\xs.
+    if empty xs
+      then []
+      else (f (head xs)) :: (map f (tail xs))
+  )) : forall X Y. (X -> Y) -> [X] -> [Y]
+
+mapExample :=
+  letrec map : forall A B. (A->B)->[A]->[B]
+    \A \B f xs =
+      if empty xs
+        then []
+        else (f (head xs)) :: (map f (tail xs))
+  in map (*I 2) [1,2,3]
+
+fst := (\X Y.\(x : X, y : Y).x)
+
+snd := (\X Y.\(x : X, y : Y).y)
+
+id := (\X.\x : X.x)
+
+compose := (\A.\B.\C.\f : B -> C.\g: A -> B.\x: A.f(g x))
+
+composeAnno := (\A.\B.\C.\f.\g.\x : A.f(g x)) : forall A B C. (B -> C) -> (A -> B) -> (A -> C)
+
+mod :=
+  letrec mod : Int -> Int -> Int n k =
+  if <I n k
+    then n
+    else mod (-I n k) k
+  in mod
+
+toIntList :=
+  let mod : Int -> Int -> Int n k = undefined in
+  let reverse : forall A.[A] -> [A] \A xs = undefined in
+  letrec toIntList : Int -> [Int] n =
+    if <=I n 0
+      then []
+      else (mod n 10) :: toIntList (/I n 10)
+  in (\n: Int.if ==I n 0 then [0] else reverse (toIntList n))
+
+showDigit :=
+  let showDigit: Int -> Char n =
+    if ==I n 0
+      then '0'
+    else if ==I n 1
+      then '1'
+    else if ==I n 2
+      then '2'
+    else if ==I n 3
+      then '3'
+    else if ==I n 4
+      then '4'
+    else if ==I n 5
+      then '5'
+    else if ==I n 6
+      then '6'
+    else if ==I n 7
+      then '7'
+    else if ==I n 8
+      then '8'
+    else if ==I n 9
+      then '9'
+    else ' '
+  in showDigit
+
+showNum :=
+  let map : forall X Y.(X -> Y) -> [X] -> [Y] \X \Y f xs = undefined in
+  let showDigit : Int -> Char n = undefined in
+  let toIntList : Int -> [Int] n = undefined in
+  let showNum : Int -> [Char] n = map showDigit (toIntList n)
+  in showNum
+
+foldr :=
+  letrec foldr : forall X Y.(X -> Y -> Y) -> Y -> [X] -> Y
+    \X \Y f z xs =
+      if empty xs
+        then z
+	else f (head xs) (foldr f z (tail xs))
+  in foldr
+
+foldl :=
+  letrec foldl : forall X Y.(Y -> X -> Y) -> Y -> [X] -> Y
+    \X \Y f z xs =
+      if empty xs
+        then z
+	else foldl f (f z (head xs)) (tail xs)
+  in foldl
+
+flip :=
+  let flip : forall A B C.(A -> B -> C) -> B -> A -> C
+    \A \B \C f =
+      \b : B.\a : A.f a b
+  in flip
+
+append :=
+  letrec append : forall A.[A] -> [A] -> [A]
+    \A xs ys =
+      if empty xs
+        then ys
+	else head xs :: append (tail xs) ys
+  in append
+
+genericExample1 := (\x : Int->Int.\Y.\y : Y -> Int.\z : Y.x (y z)) (+I 2) 
+
+genericExample2 := (\x : Int->Int.\Y.\y : Y -> Int.\z : Y.x (y z)) (+I 2) (+I 1)
+
+genericExample3 := (\x : Int->Int.\Y.\y : Y -> Int.\z : Y.x (y z)) (+I 2) (+I 1) 0
+
+genericExample4 := (\X.\x : (X, X -> X).x.2 x.1)
+
+genericExample5 := (\X.\(x : X, f : X -> X).f x)
+
+length :=
+  letrec length : forall X.[X] -> Int \X xs =
+    if empty xs
+      then 0
+      else +I 1 (length (tail xs))
+  in length
+
+and :=
+  let foldr : forall X Y. (X -> Y -> Y) -> Y -> [X] -> Y \X \Y f z xs = undefined in
+  let and : [Bool] -> Bool bs = foldr (&&) True bs
+  in and
+
+or :=
+  let foldr : forall X Y. (X -> Y -> Y) -> Y -> [X] -> Y \X \Y f z xs = undefined in
+  let or : [Bool] -> Bool bs = foldr (||) False bs
+  in or
+
+all :=
+  let map : forall X Y.(X -> Y) -> [X] -> [Y] \X \Y f xs = undefined in
+  let and : [Bool] -> Bool bs = undefined in
+  let all : forall X.(X -> Bool) -> [X] -> Bool \X f bs = and (map f bs)
+  in all
+
+odd :=
+  let mod : Int -> Int -> Int n k = undefined in
+  let odd : Int -> Bool n =
+    if ==I (mod n 2) 0
+      then False
+      else True
+  in odd
+
+even :=
+  let mod : Int -> Int -> Int n k = undefined in
+  let even : Int -> Bool n =
+    if ==I (mod n 2) 0
+      then True
+      else False
+  in even
+
+max :=
+  let max : Int -> Int -> Int n1 n2 =
+    if >I n1 n2
+      then n1
+      else n2
+  in max
+
+min :=
+  let min : Int -> Int -> Int n1 n2 =
+    if >I n1 n2
+      then n2
+      else n1
+  in min
+
+maximum :=
+  let max : Int -> Int -> Int n1 n2 = undefined in
+  let foldr : forall X Y. (X -> Y -> Y) -> Y -> [X] -> Y \X \Y f z xs = undefined in
+  let maximum : [Int] -> Int xs = foldr max (head xs) (tail xs)
+  in maximum
+
+minimum :=
+  let min : Int -> Int -> Int n1 n2 = undefined in
+  let foldr : forall X Y. (X -> Y -> Y) -> Y -> [X] -> Y \X \Y f z xs = undefined in
+  let minimum : [Int] -> Int xs = foldr min (head xs) (tail xs)
+  in minimum
+
+sum :=
+  let foldr : forall X Y. (X -> Y -> Y) -> Y -> [X] -> Y \X \Y f z xs = undefined in
+  let sum : [Int] -> Int xs = foldr (+I) 0 xs
+  in sum
+
+product :=
+  let foldr : forall X Y. (X -> Y -> Y) -> Y -> [X] -> Y \X \Y f z xs = undefined in
+  let product : [Int] -> Int xs = foldr (*I) 1 xs
+  in product
+
+negate := (-I) 0
+
+take :=
+  letrec take : forall X.Int -> [X] -> [X] \X n xs =
+    if <=I n 0
+      then []
+      else head xs :: take (-I n 1) (tail xs)
+  in take
+
+drop :=
+  letrec drop : forall X.Int -> [X] -> [X] \X n xs =
+    if <=I n 0
+      then xs
+      else drop (-I n 1) (tail xs)
+  in drop
+
+takeWhile :=
+  letrec takeWhile : forall X.(X -> Bool) -> [X] -> [X] \X f xs =
+    if f (head xs)
+      then []
+      else head xs :: takeWhile f (tail xs)
+  in takeWhile
+
+dropWhile :=
+  letrec dropWhile : forall X.(X -> Bool) -> [X] -> [X] \X f xs =
+    if f (head xs)
+      then xs
+      else dropWhile f (tail xs)
+  in dropWhile
+
+uncurry :=
+  let uncurry : forall A B C.(A -> B -> C) -> (A, B) -> C
+    \A \B \C f = \(a : A, b : B).f a b
+  in uncurry
+
+curry :=
+  let curry : forall A B C. ((A, B) -> C) -> A -> B -> C
+    \A \B \C f = \a : A.\b : B.f (a, b)
+  in curry
